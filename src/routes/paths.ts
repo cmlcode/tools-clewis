@@ -15,5 +15,6 @@ export const api = {
   bar: {
     orders: "/api/bar/orders",
     recipes: "/api/bar/recipes",
+    status: "/api/bar/status",
   },
 } as const;

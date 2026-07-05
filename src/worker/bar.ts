@@ -43,6 +43,39 @@ export async function handleBarApiRequest(request: Request, env: Env): Promise<R
     return handleRecipes(request, env, id);
   }
 
+  if (resource === 'status') {
+    return handleStatus(request, env);
+  }
+
+  return json({ error: 'Not found' }, { status: 404 });
+}
+
+async function handleStatus(request: Request, env: Env): Promise<Response> {
+  if (request.method === 'GET') {
+    const row = await env.BAR_DB.prepare('SELECT is_open FROM bar_status WHERE id = 1').first<{
+      is_open: number;
+    }>();
+
+    return json({ isOpen: row?.is_open === 1 });
+  }
+
+  if (request.method === 'PATCH') {
+    if (!isOwnerRequest(request)) {
+      return json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json<{ isOpen?: boolean }>();
+    if (typeof body.isOpen !== 'boolean') {
+      return json({ error: 'isOpen must be a boolean' }, { status: 400 });
+    }
+
+    await env.BAR_DB.prepare('UPDATE bar_status SET is_open = ? WHERE id = 1')
+      .bind(body.isOpen ? 1 : 0)
+      .run();
+
+    return json({ isOpen: body.isOpen });
+  }
+
   return json({ error: 'Not found' }, { status: 404 });
 }
 
@@ -56,6 +89,14 @@ async function handleOrders(request: Request, env: Env, id: string | undefined):
 
     if (!guestName || !drink) {
       return json({ error: 'guestName and drink are required' }, { status: 400 });
+    }
+
+    const status = await env.BAR_DB.prepare('SELECT is_open FROM bar_status WHERE id = 1').first<{
+      is_open: number;
+    }>();
+
+    if (status?.is_open !== 1) {
+      return json({ error: 'The bar is closed right now' }, { status: 403 });
     }
 
     const result = await env.BAR_DB.prepare(
