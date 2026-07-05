@@ -1,0 +1,93 @@
+.order-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-top: 20px;
+  padding: 12px 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-hover);
+}
+
+.order-status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.order-status-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.order-status-drink {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-status-badge {
+  padding: 4px 8px;
+  flex-shrink: 0;
+
+  border-radius: 4px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  color: var(--ink-dim);
+  background: var(--paper);
+}
+
+.order-status-badge--made {
+  color: var(--accent);
+}
+
+.order-status-badge--served {
+  color: var(--ink-dim);
+  opacity: 0.6;
+}
+
+.order-status button {
+  padding: 6px 10px;
+  flex-shrink: 0;
+
+  border: 1px solid var(--line);
+  border-radius: 6px;
+
+  background: var(--accent);
+  color: white;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.order-status button:hover {
+  background: #6a0a0a;
+}
+
+.order-status button:active {
+  transform: translateY(1px);
+}
+
+.order-status button:focus-visible {
+  outline: 2px solid var(--accent-dim);
+  outline-offset: 2px;
+}

@@ -1,0 +1,14 @@
+.bar-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.bar-content:not(.bar-content--owner) {
+  justify-content: center;
+}
+
+.bar-content .order-form {
+  margin: 40px 0;
+}

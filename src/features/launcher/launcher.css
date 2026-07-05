@@ -1,0 +1,17 @@
+.ref {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 13px;
+}

@@ -1,0 +1,32 @@
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 64px 24px 80px;
+}
+
+header {
+  margin-bottom: 56px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 28px;
+}
+
+.header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+footer {
+  margin-top: 56px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  opacity: 0.8;
+}

@@ -1,0 +1,10 @@
+:root {
+  --paper: #ffffff;
+  --panel: #f8f6f0;
+  --panel-hover: #f1efe4;
+  --line: rgba(0, 0, 0, 0.08);
+  --ink: #222222;
+  --ink-dim: #6f6f6f;
+  --accent: #540808;
+  --accent-dim: rgba(84, 8, 8, 0.35);
+}

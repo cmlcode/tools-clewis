@@ -1,0 +1,89 @@
+.order-form {
+  max-width: 420px;
+  margin: 40px auto;
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-form h2 {
+  margin: 0 0 8px;
+
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.order-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  color: var(--ink-dim);
+}
+
+.order-form input {
+  padding: 10px 12px;
+
+  border-radius: 6px;
+  border: 1px solid var(--line);
+
+  background: var(--paper);
+  color: var(--ink);
+
+  font-size: 14px;
+  font-family: inherit;
+
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.order-form input:hover {
+  background: var(--panel-hover);
+}
+
+.order-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.order-form button {
+  margin-top: 8px;
+  padding: 10px 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 6px;
+
+  background: var(--accent);
+  color: white;
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-form button:hover {
+  background: #6a0a0a;
+}
+
+.order-form button:active {
+  transform: translateY(1px);
+}
+
+.order-form button:focus-visible {
+  outline: 2px solid var(--accent-dim);
+  outline-offset: 2px;
+}
