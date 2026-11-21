@@ -4,6 +4,7 @@ export const paths = {
   launcher: "/",
   bar: "/bar",
   login: "/login",
+  account: "/account",
   admin: "/admin",
 } as const;
 
@@ -12,6 +13,7 @@ export const api = {
     login: "/api/auth/login",
     logout: "/api/auth/logout",
     status: "/api/auth/status",
+		changePassword: "/api/auth/change-password",   // new`
   },
 
   admin: {

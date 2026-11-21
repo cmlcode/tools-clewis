@@ -1,21 +1,12 @@
-export type OrderStatus = "pending" | "made" | "served";
+// src/features/bar/types/index.ts
+// API response shapes come from the shared file so the Worker and the UI can't drift apart.
+import type { OrderDto } from "@/shared/bar";
 
-export interface Order {
-  id: number;
-  guest_name: string;
-  drink: string;
-  status: OrderStatus;
-  created_at: string;
-}
+export type {
+  BarStatusDto as BarStatus,
+  OrderDto as Order,           // full order, only returned to managers/admins (has guestName)
+  PublicOrderDto as PublicOrder, // what a guest gets back: { id, drink, status }
+  RecipeDto as Recipe,
+} from "@/shared/bar";
 
-export interface BarStatus {
-  isOpen: boolean;
-}
-
-export interface Recipe {
-  id: number;
-  name: string;
-  ingredients: string;
-  instructions: string;
-  created_at: string;
-}
+export type OrderStatus = OrderDto["status"];

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getOrder } from "../services/barService";
-import type { Order } from "../types";
+import type { PublicOrder } from "../types"; 
 
 const KEY = "bar_my_order_id";
 const POLL_INTERVAL_MS = 5000;
@@ -10,7 +10,7 @@ export function useMyOrder() {
     const saved = localStorage.getItem(KEY);
     return saved ? Number(saved) : null;
   });
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<PublicOrder | null>(null);
 
   const clear = useCallback(() => {
     localStorage.removeItem(KEY);
