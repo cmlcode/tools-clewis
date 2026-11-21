@@ -139,7 +139,7 @@ async function handleOrders(
     }>();
 
     if (status?.is_open !== 1) {
-      return json({ error: 'The bar is closed right now' }, { status: 403 });
+      return json({ error: 'The bar is closed right now', code: 'bar_closed' }, { status: 403 });
     }
 
     const row = await env.BAR_DB.prepare(

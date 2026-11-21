@@ -1,5 +1,5 @@
 import { api } from "@/routes/paths";
-import type { BarStatus, Order, OrderStatus, Recipe } from "../types";
+import type { BarStatus, Order, OrderStatus, PublicOrder, Recipe } from "../types";
 import { BarClosedError } from "../errors";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -9,10 +9,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    const body = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
     const message = body?.error ?? `Request to ${url} failed with ${res.status}`;
 
-    if (res.status === 403) {
+    // Only the "bar is closed" refusal is a BarClosedError. Other 403s (not allowed) are real errors.
+    if (body?.code === "bar_closed") {
       throw new BarClosedError(message);
     }
 
@@ -23,19 +24,21 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function placeOrder(guestName: string, drink: string): Promise<Order> {
-  return request<Order>(api.bar.orders, {
+// Guests: placing an order and checking on it return only { id, drink, status }.
+export function placeOrder(guestName: string, drink: string): Promise<PublicOrder> {
+  return request<PublicOrder>(api.bar.orders, {
     method: "POST",
     body: JSON.stringify({ guestName, drink }),
   });
 }
 
-export function listOrders(): Promise<Order[]> {
-  return request<Order[]>(api.bar.orders);
+export function getOrder(id: number): Promise<PublicOrder> {
+  return request<PublicOrder>(`${api.bar.orders}/${id}`);
 }
 
-export function getOrder(id: number): Promise<Order> {
-  return request<Order>(`${api.bar.orders}/${id}`);
+// Managers and admins: full orders, including the guest's name.
+export function listOrders(): Promise<Order[]> {
+  return request<Order[]>(api.bar.orders);
 }
 
 export function updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {
@@ -53,7 +56,7 @@ export function listRecipes(): Promise<Recipe[]> {
   return request<Recipe[]>(api.bar.recipes);
 }
 
-export function createRecipe(recipe: Omit<Recipe, "id" | "created_at">): Promise<Recipe> {
+export function createRecipe(recipe: Omit<Recipe, "id" | "createdAt">): Promise<Recipe> {
   return request<Recipe>(api.bar.recipes, {
     method: "POST",
     body: JSON.stringify(recipe),
@@ -62,7 +65,7 @@ export function createRecipe(recipe: Omit<Recipe, "id" | "created_at">): Promise
 
 export function updateRecipe(
   id: number,
-  recipe: Partial<Omit<Recipe, "id" | "created_at">>
+  recipe: Partial<Omit<Recipe, "id" | "createdAt">>
 ): Promise<Recipe> {
   return request<Recipe>(`${api.bar.recipes}/${id}`, {
     method: "PATCH",

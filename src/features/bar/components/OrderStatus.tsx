@@ -1,14 +1,14 @@
-import type { Order } from "../types";
+import type { PublicOrder } from "../types";
 import "./order-status.css";
 
-const STATUS_LABEL: Record<Order["status"], string> = {
+const STATUS_LABEL: Record<PublicOrder["status"], string> = {
   pending: "Pending",
   made: "Made",
   served: "Delivered",
 };
 
 interface OrderStatusProps {
-  order: Order;
+  order: PublicOrder;
   onReorder: () => void;
 }
 
