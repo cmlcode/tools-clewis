@@ -6,7 +6,6 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": [
-			"/auth/*",
 			"/api/*"
 		]
   },
@@ -14,7 +13,14 @@
     {
       "binding": "BAR_DB",
       "database_name": "tools-clewis-bar",
-      "database_id": "84808e7c-d293-49c6-b3ef-91bf0e949e77"
-    }
+      "database_id": "84808e7c-d293-49c6-b3ef-91bf0e949e77",
+			"migrations_dir": "migrations/bar"
+    },
+		{
+			"binding": "MGMT_DB",
+      "database_name": "tools-clewis-mgmt",
+      "database_id": "aff7a703-c735-44f4-99cd-918b566a76ea",
+			"migrations_dir": "migrations/mgmt"
+		}
   ]
 }

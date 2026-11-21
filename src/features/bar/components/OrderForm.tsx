@@ -17,14 +17,17 @@ export function OrderForm({ isOpen }: OrderFormProps) {
   const [status, setStatus] = useState<"idle" | "submitting" | "error" | "closed">("idle");
   const { order, setOrderId } = useMyOrder();
 
-  async function submitOrder(guestName: string, drinkName: string) {
+  // Returns true if the order was placed
+  async function submitOrder(guestName: string, drinkName: string): Promise<boolean> {
     setStatus("submitting");
     try {
       const placed = await placeOrder(guestName, drinkName);
       setOrderId(placed.id);
       setStatus("idle");
+      return true;
     } catch (e) {
       setStatus(e instanceof BarClosedError ? "closed" : "error");
+      return false;
     }
   }
 
@@ -32,13 +35,14 @@ export function OrderForm({ isOpen }: OrderFormProps) {
     e.preventDefault();
     if (!name.trim() || !drink.trim()) return;
 
-    await submitOrder(name, drink);
-    setDrink("");
+    const placed = await submitOrder(name.trim(), drink.trim());
+    if (placed) setDrink(""); // keep what they typed if the order failed
   }
 
   function handleReorder() {
-    if (!order) return;
-    submitOrder(order.guest_name, order.drink);
+    // The order lookup no longer returns the guest's name, so use the name in the form.
+    if (!order || !name.trim()) return;
+    void submitOrder(name.trim(), order.drink);
   }
 
   if (isOpen === false) {
@@ -56,20 +60,22 @@ export function OrderForm({ isOpen }: OrderFormProps) {
         <h2>Bar Order</h2>
         <label>
           Name
-					<input
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								document.getElementById("drink-input")?.focus();
-							}
-						}}
-					/>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault(); // move to the drink field instead of submitting early
+                document.getElementById("drink-input")?.focus();
+              }
+            }}
+          />
         </label>
 
         <label>
           Drink
           <input
+            id="drink-input"
             value={drink}
             onChange={(e) => setDrink(e.target.value)}
           />

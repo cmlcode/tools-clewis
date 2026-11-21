@@ -19,9 +19,9 @@ export const tools: Tool[] = [
   },
   {
     ref: 'A2',
-    title: 'Library',
-    description: 'Download a book',
-    href: '/bar/',
+    title: 'Recipes',
+    description: 'View recipes',
+    href: '/recipe/',
     status: 'Building',
     public: false,
   },
