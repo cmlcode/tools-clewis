@@ -1,10 +1,12 @@
+// src/features/launcher/LauncherPage.tsx
 import { ToolCard } from "./components/ToolCard";
 import { tools } from "./data/tools";
 import { useAuthStatus } from "@/hooks/useAuthStatus";
 import { Link } from "react-router-dom";
+import { paths } from "@/routes/paths";
 
 export function LauncherPage() {
-  const { loggedIn, logout } = useAuthStatus();
+  const { loggedIn, role, logout } = useAuthStatus();
 
   const visibleTools = tools.filter(
     (tool) => tool.public || loggedIn
@@ -18,17 +20,27 @@ export function LauncherPage() {
 
           <nav className="nav">
             {loggedIn === null ? null : loggedIn ? (
-              <button
-                type="button"
-                className="nav-tab"
-                onClick={logout}
-              >
-                Log out
-              </button>
+              <>
+                {role === "admin" && (
+                  <Link className="nav-tab" to={paths.admin}>
+                    Admin
+                  </Link>
+                )}
+                <Link className="nav-tab" to={paths.account}>
+                  Account
+                </Link>
+                <button
+                  type="button"
+                  className="nav-tab"
+                  onClick={() => void logout()}
+                >
+                  Log out
+                </button>
+              </>
             ) : (
-              <a className="nav-tab" href="/auth/login">
+              <Link className="nav-tab" to={paths.login}>
                 Log in
-              </a>
+              </Link>
             )}
           </nav>
         </div>

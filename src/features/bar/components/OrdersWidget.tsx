@@ -49,7 +49,7 @@ export function OrdersWidget() {
 					.map((order) => (
 						<li key={order.id} className="orders-widget-item">
 							<div className="orders-widget-info">
-								<span className="orders-widget-name">{order.guest_name}</span>
+								<span className="orders-widget-name">{order.guestName}</span>
 								<span className="orders-widget-drink">{order.drink}</span>
 							</div>
 

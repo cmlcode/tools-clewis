@@ -3,23 +3,31 @@ import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import { placeOrder } from "../services/barService";
 import { useMyOrder } from "../hooks/useMyOrder";
+import { BarClosedError } from "../errors";
 import { OrderStatus } from "./OrderStatus";
 import "./order-form.css";
 
-export function OrderForm() {
+interface OrderFormProps {
+  isOpen: boolean | null;
+}
+
+export function OrderForm({ isOpen }: OrderFormProps) {
   const { name, setName } = useUser();
   const [drink, setDrink] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error" | "closed">("idle");
   const { order, setOrderId } = useMyOrder();
 
-  async function submitOrder(guestName: string, drinkName: string) {
+  // Returns true if the order was placed
+  async function submitOrder(guestName: string, drinkName: string): Promise<boolean> {
     setStatus("submitting");
     try {
       const placed = await placeOrder(guestName, drinkName);
       setOrderId(placed.id);
       setStatus("idle");
-    } catch {
-      setStatus("error");
+      return true;
+    } catch (e) {
+      setStatus(e instanceof BarClosedError ? "closed" : "error");
+      return false;
     }
   }
 
@@ -27,13 +35,23 @@ export function OrderForm() {
     e.preventDefault();
     if (!name.trim() || !drink.trim()) return;
 
-    await submitOrder(name, drink);
-    setDrink("");
+    const placed = await submitOrder(name.trim(), drink.trim());
+    if (placed) setDrink(""); // keep what they typed if the order failed
   }
 
   function handleReorder() {
-    if (!order) return;
-    submitOrder(order.guest_name, order.drink);
+    // The order lookup no longer returns the guest's name, so use the name in the form.
+    if (!order || !name.trim()) return;
+    void submitOrder(name.trim(), order.drink);
+  }
+
+  if (isOpen === false) {
+    return (
+      <Panel className="order-form">
+        <h2>Bar Order</h2>
+        <p>The bar is closed right now — check back later.</p>
+      </Panel>
+    );
   }
 
   return (
@@ -42,20 +60,22 @@ export function OrderForm() {
         <h2>Bar Order</h2>
         <label>
           Name
-					<input
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								document.getElementById("drink-input")?.focus();
-							}
-						}}
-					/>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault(); // move to the drink field instead of submitting early
+                document.getElementById("drink-input")?.focus();
+              }
+            }}
+          />
         </label>
 
         <label>
           Drink
           <input
+            id="drink-input"
             value={drink}
             onChange={(e) => setDrink(e.target.value)}
           />
@@ -65,6 +85,7 @@ export function OrderForm() {
           {status === "submitting" ? "Placing…" : "Place Order"}
         </button>
         {status === "error" && <p role="alert">Couldn't place order, try again.</p>}
+        {status === "closed" && <p role="alert">The bar just closed — check back later.</p>}
       </form>
 
       {order && <OrderStatus order={order} onReorder={handleReorder} />}

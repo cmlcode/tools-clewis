@@ -8,6 +8,10 @@ export interface Order {
   created_at: string;
 }
 
+export interface BarStatus {
+  isOpen: boolean;
+}
+
 export interface Recipe {
   id: number;
   name: string;

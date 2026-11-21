@@ -1,5 +1,6 @@
 import { api } from "@/routes/paths";
-import type { Order, OrderStatus, Recipe } from "../types";
+import type { BarStatus, Order, OrderStatus, Recipe } from "../types";
+import { BarClosedError } from "../errors";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -9,7 +10,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `Request to ${url} failed with ${res.status}`);
+    const message = body?.error ?? `Request to ${url} failed with ${res.status}`;
+
+    if (res.status === 403) {
+      throw new BarClosedError(message);
+    }
+
+    throw new Error(message);
   }
 
   if (res.status === 204) return undefined as T;
@@ -65,4 +72,15 @@ export function updateRecipe(
 
 export function deleteRecipe(id: number): Promise<void> {
   return request<void>(`${api.bar.recipes}/${id}`, { method: "DELETE" });
+}
+
+export function getBarStatus(): Promise<BarStatus> {
+  return request<BarStatus>(api.bar.status);
+}
+
+export function setBarStatus(isOpen: boolean): Promise<BarStatus> {
+  return request<BarStatus>(api.bar.status, {
+    method: "PATCH",
+    body: JSON.stringify({ isOpen }),
+  });
 }

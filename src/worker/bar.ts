@@ -1,6 +1,29 @@
-import { isOwnerRequest } from './auth';
+// worker/bar.ts
+import type { User } from './auth';
+import { invalid, json, parseId, readJson } from './http';
+import {
+  CreateOrderBody,
+  CreateRecipeBody,
+  UpdateOrderBody,
+  UpdateRecipeBody,
+  UpdateStatusBody,
+  type BarStatusDto,
+  type OrderDto,
+  type PublicOrderDto,
+  type RecipeDto,
+} from '../shared/bar';
 
-interface Recipe {
+// ---- DB row shapes (snake_case, internal only) -----------------------------
+
+interface OrderRow {
+  id: number;
+  guest_name: string;
+  drink: string;
+  status: OrderDto['status'];
+  created_at: string;
+}
+
+interface RecipeRow {
   id: number;
   name: string;
   ingredients: string;
@@ -8,118 +31,174 @@ interface Recipe {
   created_at: string;
 }
 
-interface Order {
-  id: number;
-  guest_name: string;
-  drink: string;
-  status: 'pending' | 'made' | 'served';
-  created_at: string;
+const ORDER_COLUMNS = 'id, guest_name, drink, status, created_at';
+const RECIPE_COLUMNS = 'id, name, ingredients, instructions, created_at';
+
+// ---- Row -> DTO mappers -----------------------------------------------------
+
+const toOrderDto = (r: OrderRow): OrderDto => ({
+  id: r.id,
+  guestName: r.guest_name,
+  drink: r.drink,
+  status: r.status,
+  createdAt: r.created_at,
+});
+
+const toPublicOrderDto = (r: OrderRow): PublicOrderDto => ({
+  id: r.id,
+  drink: r.drink,
+  status: r.status,
+});
+
+const toRecipeDto = (r: RecipeRow): RecipeDto => ({
+  id: r.id,
+  name: r.name,
+  ingredients: r.ingredients,
+  instructions: r.instructions,
+  createdAt: r.created_at,
+});
+
+// ---- Helpers ----------------------------------------------------------------
+
+/**
+ * Who may do the "owner" actions (see all orders, change status, edit recipes,
+ * open/close the bar). Returns a Response to send back, or null if allowed.
+ * Tighten here (e.g. admin only) to restrict managers.
+ */
+function denied(user: User | null): Response | null {
+  if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (user.role !== 'admin' && user.role !== 'manager') {
+    return json({ error: 'Forbidden' }, { status: 403 });
+  }
+  return null;
 }
 
-const ORDER_STATUSES = ['pending', 'made', 'served'];
+// ---- Router -----------------------------------------------------------------
 
-function json(data: unknown, init: ResponseInit = {}): Response {
-  return Response.json(data, {
-    ...init,
-    headers: { 'Cache-Control': 'no-store', ...init.headers },
-  });
-}
-
-function parseId(segment: string | undefined): number | null {
-  const id = Number(segment);
-  return Number.isInteger(id) ? id : null;
-}
-
-export async function handleBarApiRequest(request: Request, env: Env): Promise<Response> {
+export async function handleBarApiRequest(
+  request: Request,
+  env: Env,
+  user: User | null
+): Promise<Response> {
   const url = new URL(request.url);
   const segments = url.pathname.replace(/^\/api\/bar\/?/, '').split('/').filter(Boolean);
-  const [resource, id] = segments;
+  const [resource, idSegment] = segments;
 
-  if (resource === 'orders') {
-    return handleOrders(request, env, id);
+  if (resource === 'orders') return handleOrders(request, env, idSegment, user);
+  if (resource === 'recipes') return handleRecipes(request, env, idSegment, user);
+  if (resource === 'status') return handleStatus(request, env, user);
+
+  return json({ error: 'Not found' }, { status: 404 });
+}
+
+// ---- Status -----------------------------------------------------------------
+
+async function handleStatus(request: Request, env: Env, user: User | null): Promise<Response> {
+  if (request.method === 'GET') {
+    const row = await env.BAR_DB.prepare('SELECT is_open FROM bar_status WHERE id = 1').first<{
+      is_open: number;
+    }>();
+
+    return json({ isOpen: row?.is_open === 1 } satisfies BarStatusDto);
   }
 
-  if (resource === 'recipes') {
-    return handleRecipes(request, env, id);
+  if (request.method === 'PATCH') {
+    const d = denied(user);
+    if (d) return d;
+
+    const parsed = UpdateStatusBody.safeParse(await readJson(request));
+    if (!parsed.success) return invalid(parsed.error);
+    const { isOpen } = parsed.data;
+
+    await env.BAR_DB.prepare('UPDATE bar_status SET is_open = ? WHERE id = 1')
+      .bind(isOpen ? 1 : 0)
+      .run();
+
+    return json({ isOpen } satisfies BarStatusDto);
   }
 
   return json({ error: 'Not found' }, { status: 404 });
 }
 
-async function handleOrders(request: Request, env: Env, id: string | undefined): Promise<Response> {
-  // Placing an order is the one guest-facing (public) action — everything
-  // else about orders is owner-only, same as the /bar/orders page.
-  if (request.method === 'POST' && !id) {
-    const body = await request.json<{ guestName?: string; drink?: string }>();
-    const guestName = body.guestName?.trim();
-    const drink = body.drink?.trim();
+// ---- Orders -----------------------------------------------------------------
 
-    if (!guestName || !drink) {
-      return json({ error: 'guestName and drink are required' }, { status: 400 });
+async function handleOrders(
+  request: Request,
+  env: Env,
+  orderIdSegment: string | undefined,
+  user: User | null
+): Promise<Response> {
+  // PUBLIC: placing an order is the one guest-facing write.
+  if (request.method === 'POST' && !orderIdSegment) {
+    const parsed = CreateOrderBody.safeParse(await readJson(request));
+    if (!parsed.success) return invalid(parsed.error);
+    const { guestName, drink } = parsed.data;
+
+    const status = await env.BAR_DB.prepare('SELECT is_open FROM bar_status WHERE id = 1').first<{
+      is_open: number;
+    }>();
+
+    if (status?.is_open !== 1) {
+      return json({ error: 'The bar is closed right now' }, { status: 403 });
     }
 
-    const result = await env.BAR_DB.prepare(
+    const row = await env.BAR_DB.prepare(
       `INSERT INTO orders (guest_name, drink, status)
        VALUES (?, ?, 'pending')
-       RETURNING id, guest_name, drink, status, created_at`
+       RETURNING ${ORDER_COLUMNS}`
     )
       .bind(guestName, drink)
-      .first<Order>();
+      .first<OrderRow>();
 
-    return json(result, { status: 201 });
+    if (!row) return json({ error: 'Could not place order' }, { status: 500 });
+    return json(toPublicOrderDto(row), { status: 201 });
   }
 
-  // A guest can look up their own order by id (e.g. to poll its status)
-  // without being the owner — the id alone isn't guessable-in-practice
-  // and exposes nothing beyond what they already submitted.
-  if (request.method === 'GET' && id) {
-    const orderId = parseId(id);
+  // PUBLIC: a guest polls an order by id. Returns drink + status only (no guest name).
+  if (request.method === 'GET' && orderIdSegment) {
+    const orderId = parseId(orderIdSegment);
     if (orderId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
-    const order = await env.BAR_DB.prepare(
-      'SELECT id, guest_name, drink, status, created_at FROM orders WHERE id = ?'
-    )
+    const row = await env.BAR_DB.prepare(`SELECT ${ORDER_COLUMNS} FROM orders WHERE id = ?`)
       .bind(orderId)
-      .first<Order>();
+      .first<OrderRow>();
 
-    if (!order) return json({ error: 'Not found' }, { status: 404 });
-    return json(order);
+    if (!row) return json({ error: 'Not found' }, { status: 404 });
+    return json(toPublicOrderDto(row));
   }
 
-  if (!isOwnerRequest(request)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Everything below requires an owner (manager / admin).
+  const d = denied(user);
+  if (d) return d;
 
-  if (request.method === 'GET' && !id) {
+  if (request.method === 'GET' && !orderIdSegment) {
     const { results } = await env.BAR_DB.prepare(
-      'SELECT id, guest_name, drink, status, created_at FROM orders ORDER BY created_at DESC'
-    ).all<Order>();
+      `SELECT ${ORDER_COLUMNS} FROM orders ORDER BY created_at DESC`
+    ).all<OrderRow>();
 
-    return json(results);
+    return json(results.map(toOrderDto));
   }
 
-  if (request.method === 'PATCH' && id) {
-    const orderId = parseId(id);
+  if (request.method === 'PATCH' && orderIdSegment) {
+    const orderId = parseId(orderIdSegment);
     if (orderId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
-    const body = await request.json<{ status?: string }>();
-    if (!body.status || !ORDER_STATUSES.includes(body.status)) {
-      return json({ error: `status must be one of: ${ORDER_STATUSES.join(', ')}` }, { status: 400 });
-    }
+    const parsed = UpdateOrderBody.safeParse(await readJson(request));
+    if (!parsed.success) return invalid(parsed.error);
 
-    const result = await env.BAR_DB.prepare(
+    const row = await env.BAR_DB.prepare(
       `UPDATE orders SET status = ? WHERE id = ?
-       RETURNING id, guest_name, drink, status, created_at`
+       RETURNING ${ORDER_COLUMNS}`
     )
-      .bind(body.status, orderId)
-      .first<Order>();
+      .bind(parsed.data.status, orderId)
+      .first<OrderRow>();
 
-    if (!result) return json({ error: 'Not found' }, { status: 404 });
-    return json(result);
+    if (!row) return json({ error: 'Not found' }, { status: 404 });
+    return json(toOrderDto(row));
   }
 
-  if (request.method === 'DELETE' && id) {
-    const orderId = parseId(id);
+  if (request.method === 'DELETE' && orderIdSegment) {
+    const orderId = parseId(orderIdSegment);
     if (orderId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
     await env.BAR_DB.prepare('DELETE FROM orders WHERE id = ?').bind(orderId).run();
@@ -129,71 +208,79 @@ async function handleOrders(request: Request, env: Env, id: string | undefined):
   return json({ error: 'Not found' }, { status: 404 });
 }
 
-async function handleRecipes(request: Request, env: Env, id: string | undefined): Promise<Response> {
-  // Reading the recipe list is public (a public menu could read it later);
-  // creating/editing/deleting recipes is owner-only, same as /bar/recipes.
-  if (request.method === 'GET' && !id) {
+// ---- Recipes ----------------------------------------------------------------
+
+async function handleRecipes(
+  request: Request,
+  env: Env,
+  recipeIdSegment: string | undefined,
+  user: User | null
+): Promise<Response> {
+  // PUBLIC: reading the recipe list.
+  if (request.method === 'GET' && !recipeIdSegment) {
     const { results } = await env.BAR_DB.prepare(
-      'SELECT id, name, ingredients, instructions, created_at FROM recipes ORDER BY name ASC'
-    ).all<Recipe>();
+      `SELECT ${RECIPE_COLUMNS} FROM recipes ORDER BY name ASC`
+    ).all<RecipeRow>();
 
-    return json(results);
+    return json(results.map(toRecipeDto));
   }
 
-  if (!isOwnerRequest(request)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Creating / editing / deleting recipes requires an owner.
+  const d = denied(user);
+  if (d) return d;
 
-  if (request.method === 'POST' && !id) {
-    const body = await request.json<{ name?: string; ingredients?: string; instructions?: string }>();
-    const name = body.name?.trim();
-    const ingredients = body.ingredients?.trim();
-    const instructions = body.instructions?.trim() ?? '';
+  if (request.method === 'POST' && !recipeIdSegment) {
+    const parsed = CreateRecipeBody.safeParse(await readJson(request));
+    if (!parsed.success) return invalid(parsed.error);
+    const { name, ingredients, instructions } = parsed.data;
 
-    if (!name || !ingredients) {
-      return json({ error: 'name and ingredients are required' }, { status: 400 });
-    }
-
-    const result = await env.BAR_DB.prepare(
+    const row = await env.BAR_DB.prepare(
       `INSERT INTO recipes (name, ingredients, instructions)
        VALUES (?, ?, ?)
-       RETURNING id, name, ingredients, instructions, created_at`
+       RETURNING ${RECIPE_COLUMNS}`
     )
       .bind(name, ingredients, instructions)
-      .first<Recipe>();
+      .first<RecipeRow>();
 
-    return json(result, { status: 201 });
+    if (!row) return json({ error: 'Could not create recipe' }, { status: 500 });
+    return json(toRecipeDto(row), { status: 201 });
   }
 
-  if (request.method === 'PATCH' && id) {
-    const recipeId = parseId(id);
+  if (request.method === 'PATCH' && recipeIdSegment) {
+    const recipeId = parseId(recipeIdSegment);
     if (recipeId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
+    const parsed = UpdateRecipeBody.safeParse(await readJson(request));
+    if (!parsed.success) return invalid(parsed.error);
+
     const existing = await env.BAR_DB.prepare(
-      'SELECT id, name, ingredients, instructions, created_at FROM recipes WHERE id = ?'
+      `SELECT ${RECIPE_COLUMNS} FROM recipes WHERE id = ?`
     )
       .bind(recipeId)
-      .first<Recipe>();
+      .first<RecipeRow>();
 
     if (!existing) return json({ error: 'Not found' }, { status: 404 });
 
-    const body = await request.json<{ name?: string; ingredients?: string; instructions?: string }>();
-    const name = body.name?.trim() || existing.name;
-    const ingredients = body.ingredients?.trim() || existing.ingredients;
-    const instructions = body.instructions?.trim() ?? existing.instructions;
+    // Omitted fields keep their current value.
+    const {
+      name = existing.name,
+      ingredients = existing.ingredients,
+      instructions = existing.instructions,
+    } = parsed.data;
 
-    const result = await env.BAR_DB.prepare(
+    const row = await env.BAR_DB.prepare(
       `UPDATE recipes SET name = ?, ingredients = ?, instructions = ? WHERE id = ?
-       RETURNING id, name, ingredients, instructions, created_at`
+       RETURNING ${RECIPE_COLUMNS}`
     )
       .bind(name, ingredients, instructions, recipeId)
-      .first<Recipe>();
+      .first<RecipeRow>();
 
-    return json(result);
+    if (!row) return json({ error: 'Not found' }, { status: 404 });
+    return json(toRecipeDto(row));
   }
 
-  if (request.method === 'DELETE' && id) {
-    const recipeId = parseId(id);
+  if (request.method === 'DELETE' && recipeIdSegment) {
+    const recipeId = parseId(recipeIdSegment);
     if (recipeId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
     await env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(recipeId).run();
