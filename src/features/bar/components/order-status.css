@@ -72,10 +72,12 @@
   background: var(--ok);
 }
 
-.order-status-badge--served {
+.order-status-badge--served,
+.order-status-badge--delivered {
   opacity: 0.7;
 }
-.order-status-badge--served::before {
+.order-status-badge--served::before,
+.order-status-badge--delivered::before {
   background: var(--ink-dim);
 }
 
@@ -106,4 +108,15 @@
 .order-status button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Small screens: once an order is delivered, drop the status word so the drink name
+   and "Order again →" get the room. The dot stays, and the text is still read by
+   screen readers (font-size: 0 hides it visually without removing it). */
+@media (max-width: 480px) {
+  .order-status-badge--served,
+  .order-status-badge--delivered {
+    font-size: 0;
+    gap: 0;
+  }
 }
