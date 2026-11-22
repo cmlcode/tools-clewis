@@ -9,11 +9,11 @@ import "./order-form.css";
 
 interface OrderFormProps {
   isOpen: boolean | null;
+  drink: string;
+  onDrinkChange: (drink: string) => void;
 }
 
-export function OrderForm({ isOpen }: OrderFormProps) {
-  const { name, setName } = useUser();
-  const [drink, setDrink] = useState("");
+export function OrderForm({ isOpen, drink, onDrinkChange }: OrderFormProps) {  const { name, setName } = useUser();
   const [status, setStatus] = useState<"idle" | "submitting" | "error" | "closed">("idle");
   const { order, setOrderId } = useMyOrder();
 
@@ -36,7 +36,7 @@ export function OrderForm({ isOpen }: OrderFormProps) {
     if (!name.trim() || !drink.trim()) return;
 
     const placed = await submitOrder(name.trim(), drink.trim());
-    if (placed) setDrink(""); // keep what they typed if the order failed
+    if (placed) onDrinkChange(""); // keep what they typed if the order failed
   }
 
   function handleReorder() {
@@ -77,7 +77,7 @@ export function OrderForm({ isOpen }: OrderFormProps) {
           <input
             id="drink-input"
             value={drink}
-            onChange={(e) => setDrink(e.target.value)}
+            onChange={(e) => onDrinkChange(e.target.value)}
           />
         </label>
 
