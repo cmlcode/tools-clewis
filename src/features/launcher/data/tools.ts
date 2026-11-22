@@ -10,15 +10,15 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
-    ref: 'A1',
+    ref: '/bar',
     title: 'Bar',
-    description: 'Order a drink. Recipes and orders live behind /bar/recipes and /bar/orders.',
+    description: 'Order a drink',
     href: '/bar/',
-    status: 'Building',
+    status: 'Active',
     public: true,
   },
   {
-    ref: 'A2',
+    ref: '/recipe',
     title: 'Recipes',
     description: 'View recipes',
     href: '/recipe/',

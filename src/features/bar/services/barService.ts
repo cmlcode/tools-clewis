@@ -1,3 +1,4 @@
+/* src/components/bar/services/barService.ts */
 import { api } from "@/routes/paths";
 import type { BarStatus, Order, OrderStatus, PublicOrder, Recipe } from "../types";
 import { BarClosedError } from "../errors";
