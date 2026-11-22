@@ -89,7 +89,8 @@
   color: var(--ok);
 }
 
-.orders-widget-status--served {
+.orders-widget-status--served,
+.orders-widget-status--delivered {
   color: var(--ink-dim);
   opacity: 0.7;
 }
