@@ -2,8 +2,7 @@
 @import "./base.css";
 @import "./layout.css";
 
-/* feature styles */
-@import "../features/launcher/launcher.css";
-
 /* UI system */
 @import "../components/ui/panel.css";
+
+@import "./theme.css"

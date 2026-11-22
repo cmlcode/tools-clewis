@@ -1,0 +1,442 @@
+/* src/styles/theme.css
+ *
+ * The approved palette: living-room cocoa, cream, brass, with soft slate blue
+ * kept for primary buttons so brown and blue never meet as big blocks.
+ *
+ * Load it AFTER tokens.css, base.css and layout.css so it overrides them. Add
+ * this as the LAST line of src/styles/index.css:
+ *
+ *   @import "./theme.css";
+ *
+ * It redefines the variable names your CSS already uses (--paper, --ink,
+ * --ink-dim, --line, --panel, --panel-hover, --accent), so existing rules pick
+ * up the new colors without edits. Change a value in :root and the site follows.
+ */
+
+:root {
+  /* surfaces */
+  --bg: #3d2c21;          /* page */
+  --panel: #4c392c;       /* cards, forms */
+  --panel-hover: #55402f;
+  --line: #68523f;        /* dividers, panel borders */
+  --field-line: #8c7561;  /* input borders (3:1 on --bg) */
+
+  /* text */
+  --text: #f6eedf;        /* 11.5:1 on --bg */
+  --muted: #dccdb6;       /* 8.5:1 on --bg */
+
+  /* accents */
+  --accent: #d6b068;      /* brass: eyebrows, links, highlights (6.5:1 on --bg) */
+  --cta: #7fa3ba;         /* soft slate blue: primary buttons only */
+  --cta-text: #1b130e;
+  --accent-dim: rgba(214, 176, 104, 0.35); /* focus rings */
+  --ok: #86aa84;          /* open / success */
+  --danger: #eba593;      /* error text (6.5:1 on --bg) */
+
+  /* the names your existing CSS uses, pointed at the new palette */
+  --paper: var(--bg);
+  --ink: var(--text);
+  --ink-dim: var(--muted);
+
+  /* type */
+  --font-display: Fraunces, Georgia, "Times New Roman", serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+/* ---- base ---------------------------------------------------------------- */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- header / footer (spacing stays in layout.css) ------------------------ */
+
+.eyebrow,
+a.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.eyebrow a.eyebrow:hover {
+  color: var(--accent);
+}
+
+header h1 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(48px, 8vw, 76px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+header > p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--muted);
+}
+
+footer {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  opacity: 1;
+}
+footer.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nav-tab {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.nav-tab:hover {
+  background: var(--panel);
+}
+
+.empty {
+  color: var(--muted);
+}
+
+/* ---- panel + tool card ---------------------------------------------------- */
+
+/* Background, border and hover color come from --panel / --line / --panel-hover. */
+.panel {
+  color: var(--text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+.panel:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+/* forms shouldn't lift or change color when the mouse passes over them */
+.order-form.panel:hover,
+.orders-widget.panel:hover {
+  transform: none;
+  background: var(--panel);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* ToolCard: <a class="card-link"><div class="panel card"> ref / h2 / p / status */
+/* Equal-height tiles: every cell in a grid row stretches, the card fills its
+   cell, and the status sits at the bottom no matter how long the description. */
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+.card-link {
+  display: block;
+  height: 100%;
+  color: var(--text);
+}
+.card-link:hover .card {
+  border-color: var(--accent);
+}
+.card-link:focus-visible {
+  outline-offset: 4px;
+}
+/* Inside the tile, as in the mockup: path (left) and status (right) across the
+   top, title and description anchored to the bottom. Same markup, no TSX change. */
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
+  column-gap: 16px;
+  height: 100%;
+  min-height: 260px;
+  padding: 28px;
+  box-sizing: border-box;
+  color: var(--text);
+}
+.card .ref {
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.card .status {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  margin: 0;
+  padding: 0;
+}
+.card h2 {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+.card p {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--muted);
+}
+.status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot, var(--accent));
+}
+.status--live,
+.status--open {
+  --dot: var(--ok);
+}
+.status--building {
+  --dot: var(--muted);
+}
+.status--closed {
+  --dot: var(--danger);
+}
+
+/* ---- forms --------------------------------------------------------------- */
+
+h2 {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS zooming on focus */
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--field-line);
+  border-radius: 3px;
+}
+textarea {
+  padding: 12px 14px;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Primary button: the only place the blue appears. */
+button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 48px;
+  padding: 0 20px;
+  color: var(--cta-text);
+  background: var(--cta);
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.nav-tab:disabled {
+  opacity: 0.55;
+}
+
+[role="alert"],
+.login-alert {
+  color: var(--danger);
+}
+.login-alert {
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 3px;
+}
+
+/* ---- bar ----------------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Open / closed indicator, top right of the Bar page */
+.bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.bar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.bar-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot);
+}
+.bar-status--open {
+  --dot: var(--ok);
+}
+.bar-status--closed {
+  --dot: var(--danger);
+}
+.bar-toggle {
+  min-height: 44px;
+}
+
+/* Menu with search (MenuList.tsx) */
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.menu h2 {
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.menu-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 20px 0 8px;
+}
+.menu-search svg {
+  position: absolute;
+  left: 14px;
+  top: calc(50% + 6px);
+  transform: translateY(-50%);
+  pointer-events: none;
+  stroke: var(--muted);
+}
+.menu-search input {
+  width: 100%;
+  padding-left: 42px;
+}
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.menu-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.2;
+}
+.menu-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+/* "Order →" is a quiet text button, not a blue CTA */
+.menu-order {
+  flex: none;
+  min-height: 44px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--accent);
+  background: transparent;
+}
+.menu-order:hover:not(:disabled) {
+  filter: none;
+  text-decoration: underline;
+}
+.menu-note {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
