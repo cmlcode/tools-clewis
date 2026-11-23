@@ -28,11 +28,13 @@ interface RecipeRow {
   name: string;
   ingredients: string;
   instructions: string;
+	description: string;
+	family: string;
   created_at: string;
 }
 
 const ORDER_COLUMNS = 'id, guest_name, drink, status, created_at';
-const RECIPE_COLUMNS = 'id, name, ingredients, instructions, created_at';
+const RECIPE_COLUMNS = 'id, name, ingredients, instructions, description, family, created_at';
 
 // ---- Row -> DTO mappers -----------------------------------------------------
 
@@ -55,6 +57,8 @@ const toRecipeDto = (r: RecipeRow): RecipeDto => ({
   name: r.name,
   ingredients: r.ingredients,
   instructions: r.instructions,
+	description: r.description,
+	family: r.family,
   createdAt: r.created_at,
 });
 
@@ -266,13 +270,15 @@ async function handleRecipes(
       name = existing.name,
       ingredients = existing.ingredients,
       instructions = existing.instructions,
+			description = existing.description,
+			family = existing.famly,
     } = parsed.data;
 
     const row = await env.BAR_DB.prepare(
-      `UPDATE recipes SET name = ?, ingredients = ?, instructions = ? WHERE id = ?
+      `UPDATE recipes SET name = ?, ingredients = ?, instructions = ?, description = ?, family = ?  WHERE id = ?
        RETURNING ${RECIPE_COLUMNS}`
     )
-      .bind(name, ingredients, instructions, recipeId)
+      .bind(name, ingredients, instructions, description, family, recipeId)
       .first<RecipeRow>();
 
     if (!row) return json({ error: 'Not found' }, { status: 404 });

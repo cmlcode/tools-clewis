@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "wrangler types && tsc -b && vite build",
     "preview": "wrangler dev",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+		"seed:local": "tsx scripts/seed-admin.ts dev@local.com ${DEV_ADMIN_PASSWORD:-password-test-123} > .seed-admin.sql && wrangler d1 execute MGMT_DB --local --file=.seed-admin.sql && rm .seed-admin.sql"
   },
   "dependencies": {
     "react": "^18.3.1",
