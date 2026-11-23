@@ -1,4 +1,4 @@
-// worker/bar.ts
+// src/worker/bar.ts
 import type { User } from './auth';
 import { invalid, json, parseId, readJson } from './http';
 import {
@@ -12,6 +12,7 @@ import {
   type PublicOrderDto,
   type RecipeDto,
 } from '../shared/bar';
+import type { RecipeChange } from '../shared/families';
 
 // ---- DB row shapes (snake_case, internal only) -----------------------------
 
@@ -28,11 +29,18 @@ interface RecipeRow {
   name: string;
   ingredients: string;
   instructions: string;
+  description: string;
+  family: RecipeDto['family'];
+  parent_id: number | null;
+  /** JSON-encoded RecipeChange[]. */
+  changes: string;
+  change_note: string;
   created_at: string;
 }
 
 const ORDER_COLUMNS = 'id, guest_name, drink, status, created_at';
-const RECIPE_COLUMNS = 'id, name, ingredients, instructions, created_at';
+const RECIPE_COLUMNS =
+  'id, name, ingredients, instructions, description, family, parent_id, changes, change_note, created_at';
 
 // ---- Row -> DTO mappers -----------------------------------------------------
 
@@ -50,11 +58,27 @@ const toPublicOrderDto = (r: OrderRow): PublicOrderDto => ({
   status: r.status,
 });
 
+/** The changes column is JSON text; fall back to "no changes" if it is empty or malformed. */
+function parseChanges(raw: string | null): RecipeChange[] {
+  if (!raw) return [];
+  try {
+    const value: unknown = JSON.parse(raw);
+    return Array.isArray(value) ? (value as RecipeChange[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 const toRecipeDto = (r: RecipeRow): RecipeDto => ({
   id: r.id,
   name: r.name,
   ingredients: r.ingredients,
   instructions: r.instructions,
+  description: r.description,
+  family: r.family,
+  parentId: r.parent_id,
+  changes: parseChanges(r.changes),
+  changeNote: r.change_note ?? '',
   createdAt: r.created_at,
 });
 
@@ -232,14 +256,25 @@ async function handleRecipes(
   if (request.method === 'POST' && !recipeIdSegment) {
     const parsed = CreateRecipeBody.safeParse(await readJson(request));
     if (!parsed.success) return invalid(parsed.error);
-    const { name, ingredients, instructions } = parsed.data;
+    const { name, ingredients, instructions, description, changes, changeNote } = parsed.data;
+    const parentId = parsed.data.parentId ?? null;
+    let family = parsed.data.family ?? null;
+
+    // A derived drink inherits its parent's family unless one was given.
+    if (parentId !== null) {
+      const parent = await env.BAR_DB.prepare('SELECT family FROM recipes WHERE id = ?')
+        .bind(parentId)
+        .first<{ family: RecipeDto['family'] }>();
+      if (!parent) return json({ error: 'Parent drink not found' }, { status: 400 });
+      family = family ?? parent.family;
+    }
 
     const row = await env.BAR_DB.prepare(
-      `INSERT INTO recipes (name, ingredients, instructions)
-       VALUES (?, ?, ?)
+      `INSERT INTO recipes (name, ingredients, instructions, description, family, parent_id, changes, change_note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING ${RECIPE_COLUMNS}`
     )
-      .bind(name, ingredients, instructions)
+      .bind(name, ingredients, instructions, description, family, parentId, JSON.stringify(changes), changeNote)
       .first<RecipeRow>();
 
     if (!row) return json({ error: 'Could not create recipe' }, { status: 500 });
@@ -266,13 +301,35 @@ async function handleRecipes(
       name = existing.name,
       ingredients = existing.ingredients,
       instructions = existing.instructions,
+      description = existing.description,
+      family = existing.family,
+      parentId = existing.parent_id,
+      changes = parseChanges(existing.changes),
+      changeNote = existing.change_note,
     } = parsed.data;
 
+    if (parentId === recipeId) {
+      return json({ error: 'A drink cannot be its own parent' }, { status: 400 });
+    }
+
     const row = await env.BAR_DB.prepare(
-      `UPDATE recipes SET name = ?, ingredients = ?, instructions = ? WHERE id = ?
+      `UPDATE recipes
+       SET name = ?, ingredients = ?, instructions = ?, description = ?, family = ?,
+           parent_id = ?, changes = ?, change_note = ?
+       WHERE id = ?
        RETURNING ${RECIPE_COLUMNS}`
     )
-      .bind(name, ingredients, instructions, recipeId)
+      .bind(
+        name,
+        ingredients,
+        instructions,
+        description,
+        family,
+        parentId,
+        JSON.stringify(changes),
+        changeNote,
+        recipeId
+      )
       .first<RecipeRow>();
 
     if (!row) return json({ error: 'Not found' }, { status: 404 });

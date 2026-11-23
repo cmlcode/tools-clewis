@@ -1,5 +1,7 @@
 // src/routes/router.tsx  (React router: lives in a .tsx file, NOT in the Worker)
 import { createBrowserRouter } from "react-router-dom";
+import { AddRecipePage } from "@/features/bar/AddRecipePage";
+import { DrinkPage } from "@/features/bar/DrinkPage";
 import { paths } from "./paths";
 import { guard } from "@/lib/auth";
 
@@ -16,8 +18,11 @@ export const router = createBrowserRouter([
   // The Worker still enforces who may call the private API endpoints.
   { path: paths.launcher, element: <LauncherPage /> },
   { path: paths.bar, element: <BarPage /> },
+	{ path: paths.drink, element: <DrinkPage /> },
 
   // Pages that need a login
   { path: paths.account, loader: guard(), element: <AccountPage /> },
   { path: paths.admin, loader: guard("admin"), element: <AdminPage /> },
+	{ path: paths.addRecipe, loader: guard("admin", "manager"), element: <AddRecipePage /> },
+	{ path: paths.editRecipe, loader: guard("admin", "manager"), element: <AddRecipePage /> },
 ]);

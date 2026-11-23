@@ -1,18 +1,21 @@
 // src/features/bar/BarPage.tsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { MenuList } from "./components/MenuList.tsx";
 import { OrderForm } from "./components/OrderForm.tsx";
 import { OrdersWidget } from "./components/OrdersWidget.tsx";
 import { useAuthStatus } from "@/hooks/useAuthStatus";
 import { isManager } from "@/lib/auth";
 import { useBarStatus } from "./hooks/useBarStatus";
+import { paths } from "@/routes/paths";
 import "./bar-page.css";
 
 export function BarPage() {
   const { loggedIn, role } = useAuthStatus();
   const { isOpen, toggle } = useBarStatus();
-  const [drink, setDrink] = useState("");
+  // Arriving from a drink page ("Order this") prefills the field.
+  const location = useLocation();
+  const [drink, setDrink] = useState<string>(() => (location.state as { drink?: string } | null)?.drink ?? "");
 
   // Managers and admins run the bar (see every order); everyone, including them, can place an order.
   const canManage = isManager(role);
@@ -41,9 +44,14 @@ export function BarPage() {
                 {isOpen ? "Open for orders" : "Closed"}
               </span>
               {canManage && (
-                <button type="button" className="bar-toggle" onClick={toggle}>
-                  {isOpen ? "Close bar" : "Open bar"}
-                </button>
+                <>
+                  <Link className="nav-tab" to={paths.addRecipe}>
+                    Add recipe
+                  </Link>
+                  <button type="button" className="bar-toggle" onClick={toggle}>
+                    {isOpen ? "Close bar" : "Open bar"}
+                  </button>
+                </>
               )}
             </div>
           )}

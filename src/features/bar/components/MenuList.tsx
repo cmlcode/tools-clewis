@@ -1,7 +1,14 @@
 // src/features/bar/components/MenuList.tsx
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { FAMILY_INFO } from "@/shared/families";
 import { listRecipes } from "../services/barService";
+import { drinkHref } from "../lib/lineage";
 import type { Recipe } from "../types";
+import "../lineage.css";
+
+/** Most drinks shown at once; guests search to narrow the rest. */
+const MAX_VISIBLE = 3;
 
 interface MenuListProps {
   /** Called with the drink's name when a guest taps "Order". */
@@ -29,18 +36,20 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
     };
   }, []);
 
-  // Name matches first, then ingredient matches, each alphabetical.
+  // Name matches first, then everything else that matches (ingredients, family name), each alphabetical.
   const matches = useMemo(() => {
     if (!recipes) return [];
     const q = query.trim().toLowerCase();
-    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...recipes]
+      .sort((a, b) => a.name.localeCompare(b.name));
     if (!q) return sorted;
 
-    const byName = sorted.filter((r) => r.name.toLowerCase().includes(q));
-    const byIngredient = sorted.filter(
-      (r) => !r.name.toLowerCase().includes(q) && r.ingredients.toLowerCase().includes(q)
-    );
-    return [...byName, ...byIngredient];
+    const nameHit = (r: Recipe) => r.name.toLowerCase().includes(q);
+    const otherHit = (r: Recipe) =>
+      r.ingredients.toLowerCase().includes(q) ||
+      r.description.toLowerCase().includes(q) ||
+      (r.family !== null && FAMILY_INFO[r.family].label.toLowerCase().includes(q));
+    return [...sorted.filter(nameHit), ...sorted.filter((r) => !nameHit(r) && otherHit(r))];
   }, [recipes, query]);
 
   return (
@@ -87,11 +96,16 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
       )}
 
       <ul className="menu-list">
-        {matches.map((r) => (
+        {matches.slice(0, MAX_VISIBLE).map((r) => (
           <li key={r.id} className="menu-item">
             <div>
-              <span className="menu-name">{r.name}</span>
-              <span className="menu-desc">{r.ingredients}</span>
+              <Link to={drinkHref(r.id)} className="menu-name">
+                {r.name}
+              </Link>
+              {r.family && (
+                <span className={`family-tag family--${r.family}`}>{FAMILY_INFO[r.family].label} family</span>
+              )}
+              <span className="menu-desc">{r.description || r.ingredients}</span>
             </div>
             <button
               type="button"
@@ -105,6 +119,12 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
           </li>
         ))}
       </ul>
+
+      {matches.length > MAX_VISIBLE && (
+        <p className="menu-note">
+          Showing {MAX_VISIBLE} of {matches.length} drinks. Search to find more.
+        </p>
+      )}
     </section>
   );
 }
