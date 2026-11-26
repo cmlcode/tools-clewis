@@ -47,14 +47,7 @@ export function RecipesPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or category"* Add open/close feature
-
-* Add open/close feature
-
-* Add admin accounts
-
-* Fix order errors
-
+            placeholder="Search by name or category"
             aria-label="Search by name or category"
           />
         </div>
