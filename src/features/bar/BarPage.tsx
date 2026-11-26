@@ -32,7 +32,7 @@ export function BarPage() {
     <div className="wrap">
       <header>
         <div className="header-top">
-          <p className="eyebrow"><Link to={'/'} className="eyebrow">Tools</Link>/bar</p>
+          <p className="eyebrow"><Link to={'/'} className="eyebrow">tools</Link>/bar</p>
 
           {/* top right: open/closed for everyone; managers also get the toggle */}
           {isOpen !== null && (
@@ -45,8 +45,8 @@ export function BarPage() {
               </span>
               {canManage && (
                 <>
-                  <Link className="nav-tab" to={paths.addRecipe}>
-                    Add recipe
+                  <Link className="nav-tab" to={paths.addDrink}>
+                    Add drink 
                   </Link>
                   <button type="button" className="bar-toggle" onClick={toggle}>
                     {isOpen ? "Close bar" : "Open bar"}

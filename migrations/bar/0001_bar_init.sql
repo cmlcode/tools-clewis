@@ -1,6 +1,6 @@
 -- Migration number: 0001 	 2026-07-02
 
-CREATE TABLE recipes (
+CREATE TABLE drinks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   ingredients TEXT NOT NULL,

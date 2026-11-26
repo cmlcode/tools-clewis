@@ -21,7 +21,7 @@ export const tools: Tool[] = [
     ref: '/recipe',
     title: 'Recipes',
     description: 'View recipes',
-    href: '/recipe/',
+    href: '/recipes/',
     status: 'Building',
     public: false,
   },

@@ -2,9 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FAMILY_INFO } from "@/shared/families";
-import { listRecipes } from "../services/barService";
+import { listDrinks} from "../services/barService";
 import { drinkHref } from "../lib/lineage";
-import type { Recipe } from "../types";
+import type { Drink } from "../types";
 import "../lineage.css";
 
 interface MenuListProps {
@@ -15,15 +15,15 @@ interface MenuListProps {
 }
 
 export function MenuList({ onPick, disabled = false }: MenuListProps) {
-  const [recipes, setRecipes] = useState<Recipe[] | null>(null);
+  const [drinks, setDrinks] = useState<Drink[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    listRecipes()
+    listDrinks()
       .then((r) => {
-        if (!cancelled) setRecipes(r);
+        if (!cancelled) setDrinks(r);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -35,21 +35,21 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
 
   // Name matches first, then everything else that matches (ingredients, family name), each alphabetical.
   const matches = useMemo(() => {
-    if (!recipes) return [];
+    if (!drinks) return [];
     const q = query.trim().toLowerCase();
     // Hidden drinks never show on the menu or in search.
-    const sorted = [...recipes]
+    const sorted = [...drinks]
       .filter((r) => !r.hidden)
       .sort((a, b) => a.name.localeCompare(b.name));
     if (!q) return sorted;
 
-    const nameHit = (r: Recipe) => r.name.toLowerCase().includes(q);
-    const otherHit = (r: Recipe) =>
+    const nameHit = (r: Drink) => r.name.toLowerCase().includes(q);
+    const otherHit = (r: Drink) =>
       r.ingredients.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q) ||
       (r.family !== null && FAMILY_INFO[r.family].label.toLowerCase().includes(q));
     return [...sorted.filter(nameHit), ...sorted.filter((r) => !nameHit(r) && otherHit(r))];
-  }, [recipes, query]);
+  }, [drinks, query]);
 
   return (
     <section className="menu" aria-labelledby="menu-heading">
@@ -84,13 +84,13 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
 
       {/* announces the result count to screen readers as the guest types */}
       <p className="visually-hidden" role="status">
-        {recipes ? `${matches.length} drinks` : ""}
+        {drinks ? `${matches.length} drinks` : ""}
       </p>
 
       {failed && <p className="menu-note">Couldn't load the menu. You can still type a drink below.</p>}
-      {!failed && recipes === null && <p className="menu-note">Loading the menu…</p>}
-      {recipes && recipes.length === 0 && <p className="menu-note">The menu is empty right now.</p>}
-      {recipes && recipes.length > 0 && matches.length === 0 && (
+      {!failed && drinks === null && <p className="menu-note">Loading the menu…</p>}
+      {drinks && drinks.length === 0 && <p className="menu-note">The menu is empty right now.</p>}
+      {drinks && drinks.length > 0 && matches.length === 0 && (
         <p className="menu-note">Nothing on the menu matches that. Try another word.</p>
       )}
 
