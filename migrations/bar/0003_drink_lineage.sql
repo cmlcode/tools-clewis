@@ -1,4 +1,4 @@
--- Recipe lineage: every drink belongs to one of six base-drink families, may descend from a
+-- Drink lineage: every drink belongs to one of six base-drink families, may descend from a
 -- parent drink, and records what changed relative to that parent.
 --
 --   family       one of: old fashioned, martini, daiquiri, sidecar, highball, flip

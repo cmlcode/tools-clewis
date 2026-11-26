@@ -1,4 +1,4 @@
-// src/features/bar/AddRecipePage.tsx
+// src/features/bar/AddDrinkPage.tsx
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Panel } from "@/components/ui/Panel";
@@ -11,17 +11,17 @@ import {
   ROLE_LABELS,
   type ChangeType,
   type Family,
-  type RecipeChange,
+  type DrinkChange,
   type Role,
 } from "@/shared/families";
-import { createRecipe, listRecipes, updateRecipe } from "./services/barService";
+import { createDrink, listDrinks, updateDrink } from "./services/barService";
 import { ancestors, indexById } from "./lib/lineage";
-import type { Recipe } from "./types";
-import "./add-recipe.css";
+import type { Drink } from "./types";
+import "./add-drink.css";
 
 type Status = "idle" | "saving" | "saved" | "error";
 
-/** Editable form of a change; converted to a RecipeChange on save. */
+/** Editable form of a change; converted to a DrinkChange on save. */
 interface ChangeRow {
   type: ChangeType;
   role: Role | "";
@@ -52,7 +52,7 @@ function rowIsValid(r: ChangeRow): boolean {
   }
 }
 
-function rowToChange(r: ChangeRow): RecipeChange {
+function rowToChange(r: ChangeRow): DrinkChange {
   const role = r.role === "" ? undefined : r.role;
   switch (r.type) {
     case "swap":
@@ -66,7 +66,7 @@ function rowToChange(r: ChangeRow): RecipeChange {
   }
 }
 
-function changeToRow(c: RecipeChange): ChangeRow {
+function changeToRow(c: DrinkChange): ChangeRow {
   const base = { role: "" as Role | "", from: "", to: "", detail: "" };
   switch (c.type) {
     case "swap":
@@ -80,12 +80,12 @@ function changeToRow(c: RecipeChange): ChangeRow {
   }
 }
 
-/** Serves both /bar/recipes/new and /bar/recipes/:id/edit. */
-export function AddRecipePage() {
+/** Serves both /bar/drinks/new and /bar/drinks/:id/edit. */
+export function AddDrinkPage() {
   const { id } = useParams();
   const editId = id ? Number(id) : null;
   const [loaded, setLoaded] = useState(false);
-  const [existing, setExisting] = useState<Recipe[]>([]);
+  const [existing, setExisting] = useState<Drink[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [ingredients, setIngredients] = useState("");
@@ -98,10 +98,10 @@ export function AddRecipePage() {
   const [savedName, setSavedName] = useState("");
 
   useEffect(() => {
-    listRecipes().then(setExisting).catch(() => setExisting([]));
+    listDrinks().then(setExisting).catch(() => setExisting([]));
   }, []);
 
-  // Editing: fill the form once, when the recipe list arrives.
+  // Editing: fill the form once, when the drink list arrives.
   useEffect(() => {
     if (editId === null || loaded) return;
     const r = existing.find((x) => x.id === editId);
@@ -140,7 +140,7 @@ export function AddRecipePage() {
     setRows([]);
     setHidden(false);
     setStatus("idle");
-    listRecipes().then(setExisting).catch(() => {});
+    listDrinks().then(setExisting).catch(() => {});
   }
 
   const canSave =
@@ -165,7 +165,7 @@ export function AddRecipePage() {
         changes: parent ? rows.map(rowToChange) : [],
         hidden,
       };
-      const saved = editId !== null ? await updateRecipe(editId, body) : await createRecipe(body);
+      const saved = editId !== null ? await updateDrink(editId, body) : await createDrink(body);
       setSavedName(saved.name);
       setStatus("saved");
     } catch {
@@ -178,24 +178,24 @@ export function AddRecipePage() {
       <header>
         <div className="header-top">
           <p className="eyebrow">
-            <Link to="/" className="eyebrow">Tools</Link>/
-            <Link to={paths.bar} className="eyebrow">bar</Link>/recipes
+            <Link to="/" className="eyebrow">tools</Link>/
+            <Link to={paths.bar} className="eyebrow">bar</Link>/drinks
           </p>
         </div>
-        <h1>{editId !== null ? "Edit recipe" : "Add a recipe"}</h1>
+        <h1>{editId !== null ? "Edit drink" : "Add a drink"}</h1>
         <p>Say which classic it comes from and what you changed.</p>
       </header>
 
       {status === "saved" ? (
-        <Panel className="add-recipe">
-          <p className="add-recipe-done">{editId !== null ? `Saved ${savedName}.` : `Added ${savedName} to the menu.`}</p>
-          <div className="add-recipe-actions">
+        <Panel className="add-drink">
+          <p className="add-drink-done">{editId !== null ? `Saved ${savedName}.` : `Added ${savedName} to the menu.`}</p>
+          <div className="add-drink-actions">
             {editId === null && <button type="button" onClick={reset}>Add another</button>}
             <Link className="nav-tab" to={paths.bar}>Back to the bar</Link>
           </div>
         </Panel>
       ) : (
-        <Panel className="add-recipe">
+        <Panel className="add-drink">
           <form onSubmit={handleSubmit}>
             <label>
               Drink name

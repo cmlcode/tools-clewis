@@ -1,18 +1,18 @@
 // src/features/bar/components/DrinkLink.tsx
-// Shows a drink name; if the menu has a recipe with that name, it links to the recipe page.
-// The recipe list is fetched once and shared by every DrinkLink on the page.
+// Shows a drink name; if the menu has a drink with that name, it links to the drink page.
+// The drinks list is fetched once and shared by every DrinkLink on the page.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listRecipes } from "../services/barService";
+import { listDrinks } from "../services/barService";
 import { drinkHref } from "../lib/lineage";
-import type { Recipe } from "../types";
+import type { Drink } from "../types";
 
-let cache: Promise<Recipe[]> | null = null;
-function recipes(): Promise<Recipe[]> {
+let cache: Promise<Drink[]> | null = null;
+function drinks(): Promise<Drink[]> {
   if (!cache) {
-    cache = listRecipes().catch(() => {
+    cache = listDrinks().catch(() => {
       cache = null; // let the next render try again
-      return [] as Recipe[];
+      return [] as Drink[];
     });
   }
   return cache;
@@ -21,11 +21,11 @@ function recipes(): Promise<Recipe[]> {
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function DrinkLink({ name }: { name: string }) {
-  const [match, setMatch] = useState<Recipe | null>(null);
+  const [match, setMatch] = useState<Drink| null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    recipes().then((list) => {
+    drinks().then((list) => {
       if (!cancelled) setMatch(list.find((r) => norm(r.name) === norm(name)) ?? null);
     });
     return () => {
@@ -35,7 +35,7 @@ export function DrinkLink({ name }: { name: string }) {
 
   if (!match) return <>{name}</>;
   return (
-    <Link to={drinkHref(match.id)} className="drink-link" title="View recipe">
+    <Link to={drinkHref(match.id)} className="drink-link" title="View drink">
       {name}
     </Link>
   );

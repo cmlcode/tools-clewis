@@ -1,6 +1,6 @@
 /* src/components/bar/services/barService.ts */
 import { api } from "@/routes/paths";
-import type { BarStatus, Order, OrderStatus, PublicOrder, Recipe } from "../types";
+import type { BarStatus, Order, OrderStatus, PublicOrder, Drink} from "../types";
 import { BarClosedError } from "../errors";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -53,29 +53,29 @@ export function deleteOrder(id: number): Promise<void> {
   return request<void>(`${api.bar.orders}/${id}`, { method: "DELETE" });
 }
 
-export function listRecipes(): Promise<Recipe[]> {
-  return request<Recipe[]>(api.bar.recipes);
+export function listDrinks(): Promise<Drink[]> {
+  return request<Drink[]>(api.bar.drinks);
 }
 
-export function createRecipe(recipe: Omit<Recipe, "id" | "createdAt">): Promise<Recipe> {
-  return request<Recipe>(api.bar.recipes, {
+export function createDrink(drink: Omit<Drink, "id" | "createdAt">): Promise<Drink> {
+  return request<Drink>(api.bar.drinks, {
     method: "POST",
-    body: JSON.stringify(recipe),
+    body: JSON.stringify(drink),
   });
 }
 
-export function updateRecipe(
+export function updateDrink(
   id: number,
-  recipe: Partial<Omit<Recipe, "id" | "createdAt">>
-): Promise<Recipe> {
-  return request<Recipe>(`${api.bar.recipes}/${id}`, {
+  drink: Partial<Omit<Drink, "id" | "createdAt">>
+): Promise<Drink> {
+  return request<Drink>(`${api.bar.drinks}/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(recipe),
+    body: JSON.stringify(drink),
   });
 }
 
-export function deleteRecipe(id: number): Promise<void> {
-  return request<void>(`${api.bar.recipes}/${id}`, { method: "DELETE" });
+export function deleteDrink(id: number): Promise<void> {
+  return request<void>(`${api.bar.drinks}/${id}`, { method: "DELETE" });
 }
 
 export function getBarStatus(): Promise<BarStatus> {

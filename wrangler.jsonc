@@ -1,26 +1,31 @@
 {
-  "name": "tools-clewis",
-  "compatibility_date": "2026-07-01",
-  "main": "src/worker/index.ts",
-  "assets": {
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": [
+	"name": "tools-clewis",
+	"compatibility_date": "2026-07-01",
+	"main": "src/worker/index.ts",
+	"assets": {
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
 			"/api/*"
 		]
-  },
-  "d1_databases": [
-    {
-      "binding": "BAR_DB",
-      "database_name": "tools-clewis-bar",
-      "database_id": "84808e7c-d293-49c6-b3ef-91bf0e949e77",
+	},
+	"d1_databases": [
+		{
+			"binding": "BAR_DB",
+			"database_name": "tools-clewis-bar",
+			"database_id": "84808e7c-d293-49c6-b3ef-91bf0e949e77",
 			"migrations_dir": "migrations/bar"
-    },
+		},
 		{
 			"binding": "MGMT_DB",
-      "database_name": "tools-clewis-mgmt",
-      "database_id": "aff7a703-c735-44f4-99cd-918b566a76ea",
+			"database_name": "tools-clewis-mgmt",
+			"database_id": "aff7a703-c735-44f4-99cd-918b566a76ea",
 			"migrations_dir": "migrations/mgmt"
+		},
+		{
+			"binding": "RECIPES_DB",
+			"database_name": "tools-clewis-recipes",
+			"database_id": "06ea5bd8-d1c9-4327-93c7-7afad6483c09"
 		}
-  ]
+	]
 }

@@ -1,8 +1,8 @@
-import type { RecipeChange } from "@/shared/families";
+import type { DrinkChange } from "@/shared/families";
 import { changeText } from "../lib/lineage";
 
 /** The structured changes that make a drink different from its parent, one chip each. */
-export function ChangeChips({ changes }: { changes?: RecipeChange[] }) {
+export function ChangeChips({ changes }: { changes?: DrinkChange[] }) {
   if (!changes || changes.length === 0) return null;
 
   return (

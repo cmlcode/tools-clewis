@@ -2,7 +2,7 @@
 // Request schemas + response types shared by the Worker and the React app.
 // In React files, prefer `import type { ... }` so zod stays out of the client bundle.
 import { z } from "zod";
-import { FAMILIES, ROLES, type Family, type RecipeChange } from "./families";
+import { FAMILIES, ROLES, type Family, type DrinkChange } from "./families";
 
 export const ORDER_STATUSES = ["pending", "made", "served"] as const;
 
@@ -21,19 +21,19 @@ export type OrderDto = {
 // What a guest may see about an order (no guest name).
 export type PublicOrderDto = Pick<OrderDto, "id" | "drink" | "status">;
 
-export type RecipeDto = {
+export type DrinkDto = {
   id: number;
   name: string;
   ingredients: string;
   instructions: string;
   /** Short line for the menu. */
   description: string;
-  /** Which of the six base drinks this belongs to (null for recipes added before lineage existed). */
+  /** Which of the six base drinks this belongs to (null for drinks added before lineage existed). */
   family: Family | null;
   /** The drink this one is derived from; null for the six base drinks. */
   parentId: number | null;
   /** Structured changes relative to the parent. */
-  changes: RecipeChange[];
+  changes: DrinkChange[];
   /** Hidden drinks stay out of the menu and search but can still be a parent or family reference. */
   hidden: boolean;
   createdAt: string;
@@ -41,36 +41,36 @@ export type RecipeDto = {
 
 // ---- Request schemas --------------------------------------------------------
 
-// Field schemas, defined once and reused by both recipe bodies.
-const recipeName = z.string().trim().min(1).max(100);
-const recipeIngredients = z.string().trim().min(1).max(2000);
-const recipeInstructions = z.string().trim().max(5000);
+// Field schemas, defined once and reused by both drink bodies.
+const drinkName = z.string().trim().min(1).max(100);
+const drinkIngredients = z.string().trim().min(1).max(2000);
+const drinkInstructions = z.string().trim().max(5000);
 
-const recipeDescription = z.string().trim().max(200);
-const recipeFamily = z.enum(FAMILIES).nullable();
-const recipeParentId = z.number().int().positive().nullable();
+const drinkDescription = z.string().trim().max(200);
+const drinkFamily = z.enum(FAMILIES).nullable();
+const drinkParentId = z.number().int().positive().nullable();
 
 // Changes are relative to the parent drink. Each type requires what it needs.
 const changeText = z.string().trim().min(1).max(100);
-const recipeChange = z.discriminatedUnion("type", [
+const drinkChange = z.discriminatedUnion("type", [
   z.object({ type: z.literal("swap"), role: z.enum(ROLES), from: changeText, to: changeText }),
   z.object({ type: z.literal("add"), role: z.enum(ROLES).optional(), to: changeText }),
   z.object({ type: z.literal("remove"), role: z.enum(ROLES).optional(), from: changeText }),
   z.object({ type: z.literal("technique"), detail: z.string().trim().min(1).max(200) }),
 ]);
-const recipeChanges = z.array(recipeChange).max(12);
+const drinkChanges = z.array(drinkChange).max(12);
 
 // Default only on create, so a partial update never wipes existing values.
 // A new drink needs a family or a parent (the family is then copied from the parent).
-export const CreateRecipeBody = z
+export const CreateDrinkBody = z
   .object({
-    name: recipeName,
-    description: recipeDescription.default(""),
-    ingredients: recipeIngredients,
-    instructions: recipeInstructions.default(""),
-    family: recipeFamily.optional(),
-    parentId: recipeParentId.optional(),
-    changes: recipeChanges.default([]),
+    name: drinkName,
+    description: drinkDescription.default(""),
+    ingredients: drinkIngredients,
+    instructions: drinkInstructions.default(""),
+    family: drinkFamily.optional(),
+    parentId: drinkParentId.optional(),
+    changes: drinkChanges.default([]),
     hidden: z.boolean().default(false),
   })
   .refine((b) => b.family != null || b.parentId != null, {
@@ -78,15 +78,15 @@ export const CreateRecipeBody = z
     path: ["family"],
   });
 
-export const UpdateRecipeBody = z
+export const UpdateDrinkBody = z
   .object({
-    name: recipeName,
-    description: recipeDescription,
-    ingredients: recipeIngredients,
-    instructions: recipeInstructions,
-    family: recipeFamily,
-    parentId: recipeParentId,
-    changes: recipeChanges,
+    name: drinkName,
+    description: drinkDescription,
+    ingredients: drinkIngredients,
+    instructions: drinkInstructions,
+    family: drinkFamily,
+    parentId: drinkParentId,
+    changes: drinkChanges,
     hidden: z.boolean(),
   })
   .partial();

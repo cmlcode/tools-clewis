@@ -6,7 +6,7 @@ export type {
   BarStatusDto as BarStatus,
   OrderDto as Order,           // full order, only returned to managers/admins (has guestName)
   PublicOrderDto as PublicOrder, // what a guest gets back: { id, drink, status }
-  RecipeDto as Recipe,
+  DrinkDto as Drink,
 } from "@/shared/bar";
 
 export type OrderStatus = OrderDto["status"];

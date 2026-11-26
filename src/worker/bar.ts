@@ -3,16 +3,16 @@ import type { User } from './auth';
 import { invalid, json, parseId, readJson } from './http';
 import {
   CreateOrderBody,
-  CreateRecipeBody,
+  CreateDrinkBody,
   UpdateOrderBody,
-  UpdateRecipeBody,
+  UpdateDrinkBody,
   UpdateStatusBody,
   type BarStatusDto,
   type OrderDto,
   type PublicOrderDto,
-  type RecipeDto,
+  type DrinkDto,
 } from '../shared/bar';
-import type { Family, RecipeChange } from '../shared/families';
+import type { Family, DrinkChange } from '../shared/families';
 
 // ---- DB row shapes (snake_case, internal only) -----------------------------
 
@@ -24,7 +24,7 @@ interface OrderRow {
   created_at: string;
 }
 
-interface RecipeRow {
+interface DrinkRow {
   id: number;
   name: string;
   ingredients: string;
@@ -38,7 +38,7 @@ interface RecipeRow {
 }
 
 const ORDER_COLUMNS = 'id, guest_name, drink, status, created_at';
-const RECIPE_COLUMNS =
+const DRINK_COLUMNS =
   'id, name, description, ingredients, instructions, family, parent_id, hidden, changes, created_at';
 
 // ---- Row -> DTO mappers -----------------------------------------------------
@@ -57,17 +57,17 @@ const toPublicOrderDto = (r: OrderRow): PublicOrderDto => ({
   status: r.status,
 });
 
-// changes is stored as JSON text; never let a bad value break the whole recipe list.
-function parseChanges(raw: string | null): RecipeChange[] {
+// changes is stored as JSON text; never let a bad value break the whole drinks list.
+function parseChanges(raw: string | null): DrinkChange[] {
   try {
     const value = JSON.parse(raw ?? '[]');
-    return Array.isArray(value) ? (value as RecipeChange[]) : [];
+    return Array.isArray(value) ? (value as DrinkChange[]) : [];
   } catch {
     return [];
   }
 }
 
-const toRecipeDto = (r: RecipeRow): RecipeDto => ({
+const toDrinkDto = (r: DrinkRow): DrinkDto => ({
   id: r.id,
   name: r.name,
   description: r.description ?? '',
@@ -83,7 +83,7 @@ const toRecipeDto = (r: RecipeRow): RecipeDto => ({
 // ---- Helpers ----------------------------------------------------------------
 
 /**
- * Who may do the "owner" actions (see all orders, change status, edit recipes,
+ * Who may do the "owner" actions (see all orders, change status, edit drinks,
  * open/close the bar). Returns a Response to send back, or null if allowed.
  * Tighten here (e.g. admin only) to restrict managers.
  */
@@ -107,7 +107,7 @@ export async function handleBarApiRequest(
   const [resource, idSegment] = segments;
 
   if (resource === 'orders') return handleOrders(request, env, idSegment, user);
-  if (resource === 'recipes') return handleRecipes(request, env, idSegment, user);
+  if (resource === 'drinks') return handleDrinks(request, env, idSegment, user);
   if (resource === 'status') return handleStatus(request, env, user);
 
   return json({ error: 'Not found' }, { status: 404 });
@@ -272,27 +272,27 @@ async function resolveLineage(
   return { parentId, family: inherited };
 }
 
-async function handleRecipes(
+async function handleDrinks(
   request: Request,
   env: Env,
-  recipeIdSegment: string | undefined,
+  drinkIdSegment: string | undefined,
   user: User | null
 ): Promise<Response> {
-  // PUBLIC: reading the recipe list.
-  if (request.method === 'GET' && !recipeIdSegment) {
+  // PUBLIC: reading the drink list.
+  if (request.method === 'GET' && !drinkIdSegment) {
     const { results } = await env.BAR_DB.prepare(
-      `SELECT ${RECIPE_COLUMNS} FROM recipes ORDER BY name ASC`
-    ).all<RecipeRow>();
+      `SELECT ${DRINK_COLUMNS} FROM recipes ORDER BY name ASC`
+    ).all<DrinkRow>();
 
-    return json(results.map(toRecipeDto));
+    return json(results.map(toDrinkDto));
   }
 
-  // Creating / editing / deleting recipes requires an owner.
+  // Creating / editing / deleting drinks requires an owner.
   const d = denied(user);
   if (d) return d;
 
-  if (request.method === 'POST' && !recipeIdSegment) {
-    const parsed = CreateRecipeBody.safeParse(await readJson(request));
+  if (request.method === 'POST' && !drinkIdSegment) {
+    const parsed = CreateDrinkBody.safeParse(await readJson(request));
     if (!parsed.success) return invalid(parsed.error);
     const b = parsed.data;
 
@@ -303,7 +303,7 @@ async function handleRecipes(
       `INSERT INTO recipes
          (name, description, ingredients, instructions, family, parent_id, hidden, changes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       RETURNING ${RECIPE_COLUMNS}`
+       RETURNING ${DRINK_COLUMNS}`
     )
       .bind(
         b.name,
@@ -315,25 +315,25 @@ async function handleRecipes(
         b.hidden ? 1 : 0,
         JSON.stringify(b.changes)
       )
-      .first<RecipeRow>();
+      .first<DrinkRow>();
 
-    if (!row) return json({ error: 'Could not create recipe' }, { status: 500 });
-    return json(toRecipeDto(row), { status: 201 });
+    if (!row) return json({ error: 'Could not create drink' }, { status: 500 });
+    return json(toDrinkDto(row), { status: 201 });
   }
 
-  if (request.method === 'PATCH' && recipeIdSegment) {
-    const recipeId = parseId(recipeIdSegment);
-    if (recipeId === null) return json({ error: 'Invalid id' }, { status: 400 });
+  if (request.method === 'PATCH' && drinkIdSegment) {
+    const drinkId = parseId(drinkIdSegment);
+    if (drinkId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
-    const parsed = UpdateRecipeBody.safeParse(await readJson(request));
+    const parsed = UpdateDrinkBody.safeParse(await readJson(request));
     if (!parsed.success) return invalid(parsed.error);
     const b = parsed.data;
 
     const existing = await env.BAR_DB.prepare(
-      `SELECT ${RECIPE_COLUMNS} FROM recipes WHERE id = ?`
+      `SELECT ${DRINK_COLUMNS} FROM recipes WHERE id = ?`
     )
-      .bind(recipeId)
-      .first<RecipeRow>();
+      .bind(drinkId)
+      .first<DrinkRow>();
 
     if (!existing) return json({ error: 'Not found' }, { status: 404 });
 
@@ -342,7 +342,7 @@ async function handleRecipes(
       env,
       b.parentId !== undefined ? b.parentId : existing.parent_id,
       b.family !== undefined ? b.family : existing.family,
-      recipeId
+      drinkId
     );
     if (lineage instanceof Response) return lineage;
 
@@ -351,7 +351,7 @@ async function handleRecipes(
          SET name = ?, description = ?, ingredients = ?, instructions = ?,
              family = ?, parent_id = ?, hidden = ?, changes = ?
        WHERE id = ?
-       RETURNING ${RECIPE_COLUMNS}`
+       RETURNING ${DRINK_COLUMNS}`
     )
       .bind(
         b.name ?? existing.name,
@@ -362,9 +362,9 @@ async function handleRecipes(
         lineage.parentId,
         (b.hidden ?? existing.hidden === 1) ? 1 : 0,
         JSON.stringify(b.changes ?? parseChanges(existing.changes)),
-        recipeId
+        drinkId
       )
-      .first<RecipeRow>();
+      .first<DrinkRow>();
 
     if (!row) return json({ error: 'Not found' }, { status: 404 });
 
@@ -378,21 +378,21 @@ async function handleRecipes(
          )
          UPDATE recipes SET family = ? WHERE id IN (SELECT id FROM sub)`
       )
-        .bind(recipeId, lineage.family)
+        .bind(drinkId, lineage.family)
         .run();
     }
 
-    return json(toRecipeDto(row));
+    return json(toDrinkDto(row));
   }
 
-  if (request.method === 'DELETE' && recipeIdSegment) {
-    const recipeId = parseId(recipeIdSegment);
-    if (recipeId === null) return json({ error: 'Invalid id' }, { status: 400 });
+  if (request.method === 'DELETE' && drinkIdSegment) {
+    const drinkId = parseId(drinkIdSegment);
+    if (drinkId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
     // Variations of this drink keep their family but lose their parent link.
     await env.BAR_DB.batch([
-      env.BAR_DB.prepare('UPDATE recipes SET parent_id = NULL WHERE parent_id = ?').bind(recipeId),
-      env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(recipeId),
+      env.BAR_DB.prepare('UPDATE recipes SET parent_id = NULL WHERE parent_id = ?').bind(drinkId),
+      env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(drinkId),
     ]);
     return new Response(null, { status: 204 });
   }

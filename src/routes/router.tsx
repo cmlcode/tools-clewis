@@ -1,6 +1,6 @@
 // src/routes/router.tsx  (React router: lives in a .tsx file, NOT in the Worker)
 import { createBrowserRouter } from "react-router-dom";
-import { AddRecipePage } from "@/features/bar/AddRecipePage";
+import { AddDrinkPage } from "@/features/bar/AddDrinkPage";
 import { DrinkPage } from "@/features/bar/DrinkPage";
 import { paths } from "./paths";
 import { guard } from "@/lib/auth";
@@ -23,6 +23,6 @@ export const router = createBrowserRouter([
   // Pages that need a login
   { path: paths.account, loader: guard(), element: <AccountPage /> },
   { path: paths.admin, loader: guard("admin"), element: <AdminPage /> },
-	{ path: paths.addRecipe, loader: guard("admin", "manager"), element: <AddRecipePage /> },
-	{ path: paths.editRecipe, loader: guard("admin", "manager"), element: <AddRecipePage /> },
+	{ path: paths.addDrink, loader: guard("admin", "manager"), element: <AddDrinkPage /> },
+	{ path: paths.editDrink, loader: guard("admin", "manager"), element: <AddDrinkPage /> },
 ]);
