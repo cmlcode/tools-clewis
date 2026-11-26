@@ -1,3 +1,4 @@
+/* src/features/bar/bar-page.css */
 /* Bar page layout: menu on the left, order form on the right.
    Managers also get the orders queue across the top. */
 .wrap:has(.bar-content) {
@@ -19,5 +20,13 @@
   .bar-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
+  }
+
+  /* On phones the order form goes above the menu (managers still see the queue first). */
+  .bar-content > .order-form {
+    order: -1;
+  }
+  .bar-content--owner > .orders-widget {
+    order: -2;
   }
 }
