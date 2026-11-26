@@ -7,9 +7,6 @@ import { drinkHref } from "../lib/lineage";
 import type { Recipe } from "../types";
 import "../lineage.css";
 
-/** Most drinks shown at once; guests search to narrow the rest. */
-const MAX_VISIBLE = 3;
-
 interface MenuListProps {
   /** Called with the drink's name when a guest taps "Order". */
   onPick: (drink: string) => void;
@@ -40,7 +37,9 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
   const matches = useMemo(() => {
     if (!recipes) return [];
     const q = query.trim().toLowerCase();
+    // Hidden drinks never show on the menu or in search.
     const sorted = [...recipes]
+      .filter((r) => !r.hidden)
       .sort((a, b) => a.name.localeCompare(b.name));
     if (!q) return sorted;
 
@@ -96,7 +95,7 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
       )}
 
       <ul className="menu-list">
-        {matches.slice(0, MAX_VISIBLE).map((r) => (
+        {matches.map((r) => (
           <li key={r.id} className="menu-item">
             <div>
               <Link to={drinkHref(r.id)} className="menu-name">
@@ -119,12 +118,6 @@ export function MenuList({ onPick, disabled = false }: MenuListProps) {
           </li>
         ))}
       </ul>
-
-      {matches.length > MAX_VISIBLE && (
-        <p className="menu-note">
-          Showing {MAX_VISIBLE} of {matches.length} drinks. Search to find more.
-        </p>
-      )}
     </section>
   );
 }

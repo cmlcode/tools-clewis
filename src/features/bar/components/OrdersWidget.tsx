@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { listOrders, updateOrderStatus } from "../services/barService";
 import type { Order, OrderStatus } from "../types";
+import { DrinkLink } from "./DrinkLink";
 import "./orders-widget.css";
 
 const POLL_INTERVAL_MS = 5000;
@@ -43,44 +44,38 @@ export function OrdersWidget() {
 
       {error && <p role="alert">Couldn't load orders.</p>}
       {!error && orders.length === 0 && <p className="orders-widget-empty">No orders yet.</p>}
-			<ul className="orders-widget-list">
-				{orders
-					.filter((order) => order.status !== "served")
-					.map((order) => (
-						<li key={order.id} className="orders-widget-item">
-							<div className="orders-widget-info">
-								<span className="orders-widget-name">{order.guestName}</span>
-								<span className="orders-widget-drink">{order.drink}</span>
-							</div>
+      <ul className="orders-widget-list">
+        {orders
+          .filter((order) => order.status !== "served")
+          .map((order) => (
+            <li key={order.id} className="orders-widget-item">
+              <div className="orders-widget-info">
+                <span className="orders-widget-name">{order.guestName}</span>
+                <span className="orders-widget-drink">
+                  <DrinkLink name={order.drink} />
+                </span>
+              </div>
 
-							<div className="orders-widget-actions">
-								<span
-									className={`orders-widget-status orders-widget-status--${order.status}`}
-								>
-									{order.status}
-								</span>
+              <div className="orders-widget-actions">
+                <span className={`orders-widget-status orders-widget-status--${order.status}`}>
+                  {order.status}
+                </span>
 
-								{order.status === "pending" && (
-									<button
-										type="button"
-										onClick={() => handleStatusChange(order.id, "made")}
-									>
-										Mark Made
-									</button>
-								)}
+                {order.status === "pending" && (
+                  <button type="button" onClick={() => handleStatusChange(order.id, "made")}>
+                    Mark Made
+                  </button>
+                )}
 
-								{order.status === "made" && (
-									<button
-										type="button"
-										onClick={() => handleStatusChange(order.id, "served")}
-									>
-										Mark Delivered
-									</button>
-								)}
-							</div>
-						</li>
-					))}
-			</ul>
+                {order.status === "made" && (
+                  <button type="button" onClick={() => handleStatusChange(order.id, "served")}>
+                    Mark Delivered
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+      </ul>
     </Panel>
   );
 }

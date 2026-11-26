@@ -56,6 +56,7 @@ export function DrinkPage() {
           </p>
         </div>
         <h1>{drink ? drink.name : "Drink"}</h1>
+        {drink?.hidden && <p><span className="family-tag">Hidden from menu</span></p>}
         {drink?.family && (
           <p>
             <span className={`family-tag family--${drink.family}`}>{FAMILY_INFO[drink.family].label} family</span>
@@ -94,7 +95,6 @@ export function DrinkPage() {
           )}
 
           <ChangeChips changes={drink.changes} />
-          {drink.changeNote && <p className="change-note">{drink.changeNote}</p>}
 
           <Panel className="drink-recipe">
             <h2>Ingredients</h2>

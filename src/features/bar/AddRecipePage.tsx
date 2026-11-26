@@ -93,7 +93,7 @@ export function AddRecipePage() {
   const [parentId, setParentId] = useState<number | null>(null);
   const [family, setFamily] = useState<Family | "">("");
   const [rows, setRows] = useState<ChangeRow[]>([]);
-  const [changeNote, setChangeNote] = useState("");
+  const [hidden, setHidden] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [savedName, setSavedName] = useState("");
 
@@ -113,7 +113,7 @@ export function AddRecipePage() {
     setParentId(r.parentId);
     setFamily(r.family ?? "");
     setRows((r.changes ?? []).map(changeToRow));
-    setChangeNote(r.changeNote ?? "");
+    setHidden(r.hidden ?? false);
     setLoaded(true);
   }, [editId, existing, loaded]);
 
@@ -138,7 +138,7 @@ export function AddRecipePage() {
     setParentId(null);
     setFamily("");
     setRows([]);
-    setChangeNote("");
+    setHidden(false);
     setStatus("idle");
     listRecipes().then(setExisting).catch(() => {});
   }
@@ -163,7 +163,7 @@ export function AddRecipePage() {
         family: parent ? parent.family : (family as Family),
         parentId: parent ? parent.id : null,
         changes: parent ? rows.map(rowToChange) : [],
-        changeNote: parent ? changeNote.trim() : "",
+        hidden,
       };
       const saved = editId !== null ? await updateRecipe(editId, body) : await createRecipe(body);
       setSavedName(saved.name);
@@ -326,18 +326,13 @@ export function AddRecipePage() {
                     + Add a change
                   </button>
                 )}
-
-                <label>
-                  Note <span className="optional">(optional)</span>
-                  <input
-                    value={changeNote}
-                    onChange={(e) => setChangeNote(e.target.value)}
-                    maxLength={300}
-                    placeholder="Why it works, in a sentence"
-                  />
-                </label>
               </fieldset>
             )}
+
+            <label className="check-row">
+              <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+              <span>Hidden</span>
+            </label>
 
             {status === "error" && <p className="add-recipe-error" role="alert">Couldn't save the recipe. Try again.</p>}
 

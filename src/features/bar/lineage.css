@@ -32,3 +32,16 @@
 .drink-text { white-space: pre-line; margin: 0 0 1rem; }
 .drink-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
 .drink-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; list-style: none; margin: 0; padding: 0; }
+
+.drink-link { color: inherit; text-decoration: underline; text-decoration-color: var(--accent-dim); text-underline-offset: 3px; }
+.drink-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+/* The menu is a scrollable box about three drinks tall; the rest scroll inside it. */
+.menu-list {
+  max-height: 25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
