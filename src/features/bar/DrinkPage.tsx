@@ -8,7 +8,7 @@ import { isManager } from "@/lib/auth";
 import { FAMILY_INFO } from "@/shared/families";
 import { listRecipes } from "./services/barService";
 import { ChangeChips } from "./components/ChangeChips";
-import { ancestors, childrenOf, drinkHref, indexById, moreLikeThis } from "./lib/lineage";
+import { ancestors, drinkHref, indexById} from "./lib/lineage";
 import type { Recipe } from "./types";
 import "./lineage.css";
 
@@ -39,8 +39,6 @@ export function DrinkPage() {
       drink,
       chain,
       parent: chain.length ? chain[chain.length - 1] : null,
-      variations: childrenOf(drink, recipes),
-      similar: moreLikeThis(drink, recipes),
     };
   }, [recipes, id]);
 
@@ -116,28 +114,6 @@ export function DrinkPage() {
             )}
             <Link className="nav-tab" to={paths.bar}>Back to the menu</Link>
           </div>
-
-          {view.variations && view.variations.length > 0 && (
-            <section className="drink-row" aria-labelledby="variations-heading">
-              <h2 id="variations-heading">Variations</h2>
-              <ul className="drink-links">
-                {view.variations.map((v) => (
-                  <li key={v.id}><Link to={drinkHref(v.id)}>{v.name}</Link></li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {view.similar && view.similar.length > 0 && (
-            <section className="drink-row" aria-labelledby="similar-heading">
-              <h2 id="similar-heading">More like this</h2>
-              <ul className="drink-links">
-                {view.similar.map((v) => (
-                  <li key={v.id}><Link to={drinkHref(v.id)}>{v.name}</Link></li>
-                ))}
-              </ul>
-            </section>
-          )}
         </div>
       )}
 
