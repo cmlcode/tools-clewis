@@ -11,7 +11,7 @@ export const FAMILY_INFO: Record<Family, { label: string; hint: string }> = {
   martini: { label: "Martini", hint: "Spirit and aromatized wine" },
   daiquiri: { label: "Daiquiri", hint: "Spirit, citrus, sugar" },
   sidecar: { label: "Sidecar", hint: "Spirit, citrus, liqueur" },
-  highball: { label: "Whiskey Highball", hint: "Spirit and a carbonated mixer" },
+  highball: { label: "Highball", hint: "Spirit and a carbonated mixer" },
   flip: { label: "Flip", hint: "Spirit, egg, sugar" },
 };
 
