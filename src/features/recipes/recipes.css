@@ -280,7 +280,7 @@
 .rc-ing {
   display: grid;
   grid-template-columns: 20px 4.5rem minmax(0, 1fr);
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   min-height: 44px;
   padding: 10px 0;
@@ -290,7 +290,6 @@
   width: 18px;
   height: 18px;
   margin: 0;
-  align-self: center;
   accent-color: var(--accent);
 }
 .rc-ing-amount {
