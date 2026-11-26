@@ -34,7 +34,7 @@ export function RecipesPage() {
           </div>
         </div>
         <h1>Recipes</h1>
-        <p>Everything we cook, in one place.</p>
+        <p>All my recipes, in one place.</p>
       </header>
 
       <main className="rc-main">

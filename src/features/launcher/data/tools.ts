@@ -22,7 +22,7 @@ export const tools: Tool[] = [
     title: 'Recipes',
     description: 'View recipes',
     href: '/recipes/',
-    status: 'Building',
+    status: 'Active',
     public: false,
   },
 ];
