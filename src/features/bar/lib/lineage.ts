@@ -24,7 +24,7 @@ export function ancestors(recipe: Recipe, byId: Map<number, Recipe>): Recipe[] {
 }
 
 export function childrenOf(recipe: Recipe, recipes: Recipe[]): Recipe[] {
-  return recipes.filter((r) => r.parentId === recipe.id).sort((a, b) => a.name.localeCompare(b.name));
+  return recipes.filter((r) => r.parentId === recipe.id && !r.hidden).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** The slots (base, sweetener, ...) this drink changed relative to its parent. */
@@ -44,6 +44,7 @@ export function moreLikeThis(recipe: Recipe, recipes: Recipe[], limit = 6): Reci
     .filter(
       (r) =>
         r.id !== recipe.id &&
+        !r.hidden &&
         r.family === recipe.family &&
         [...changedRoles(r)].some((role) => roles.has(role))
     )

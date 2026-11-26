@@ -34,8 +34,8 @@ export type RecipeDto = {
   parentId: number | null;
   /** Structured changes relative to the parent. */
   changes: RecipeChange[];
-  /** Prose nuance the change chips can't carry. */
-  changeNote: string;
+  /** Hidden drinks stay out of the menu and search but can still be a parent or family reference. */
+  hidden: boolean;
   createdAt: string;
 };
 
@@ -49,7 +49,6 @@ const recipeInstructions = z.string().trim().max(5000);
 const recipeDescription = z.string().trim().max(200);
 const recipeFamily = z.enum(FAMILIES).nullable();
 const recipeParentId = z.number().int().positive().nullable();
-const recipeChangeNote = z.string().trim().max(1000);
 
 // Changes are relative to the parent drink. Each type requires what it needs.
 const changeText = z.string().trim().min(1).max(100);
@@ -72,7 +71,7 @@ export const CreateRecipeBody = z
     family: recipeFamily.optional(),
     parentId: recipeParentId.optional(),
     changes: recipeChanges.default([]),
-    changeNote: recipeChangeNote.default(""),
+    hidden: z.boolean().default(false),
   })
   .refine((b) => b.family != null || b.parentId != null, {
     message: "Pick a family or a parent drink",
@@ -88,7 +87,7 @@ export const UpdateRecipeBody = z
     family: recipeFamily,
     parentId: recipeParentId,
     changes: recipeChanges,
-    changeNote: recipeChangeNote,
+    hidden: z.boolean(),
   })
   .partial();
 

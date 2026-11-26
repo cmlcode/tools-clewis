@@ -1,4 +1,4 @@
-// src/worker/bar.ts
+// worker/bar.ts
 import type { User } from './auth';
 import { invalid, json, parseId, readJson } from './http';
 import {
@@ -12,7 +12,7 @@ import {
   type PublicOrderDto,
   type RecipeDto,
 } from '../shared/bar';
-import type { RecipeChange } from '../shared/families';
+import type { Family, RecipeChange } from '../shared/families';
 
 // ---- DB row shapes (snake_case, internal only) -----------------------------
 
@@ -30,17 +30,16 @@ interface RecipeRow {
   ingredients: string;
   instructions: string;
   description: string;
-  family: RecipeDto['family'];
+  family: Family | null;
   parent_id: number | null;
-  /** JSON-encoded RecipeChange[]. */
-  changes: string;
-  change_note: string;
+  hidden: number;
+  changes: string; // JSON text
   created_at: string;
 }
 
 const ORDER_COLUMNS = 'id, guest_name, drink, status, created_at';
 const RECIPE_COLUMNS =
-  'id, name, ingredients, instructions, description, family, parent_id, changes, change_note, created_at';
+  'id, name, description, ingredients, instructions, family, parent_id, hidden, changes, created_at';
 
 // ---- Row -> DTO mappers -----------------------------------------------------
 
@@ -58,11 +57,10 @@ const toPublicOrderDto = (r: OrderRow): PublicOrderDto => ({
   status: r.status,
 });
 
-/** The changes column is JSON text; fall back to "no changes" if it is empty or malformed. */
+// changes is stored as JSON text; never let a bad value break the whole recipe list.
 function parseChanges(raw: string | null): RecipeChange[] {
-  if (!raw) return [];
   try {
-    const value: unknown = JSON.parse(raw);
+    const value = JSON.parse(raw ?? '[]');
     return Array.isArray(value) ? (value as RecipeChange[]) : [];
   } catch {
     return [];
@@ -72,13 +70,13 @@ function parseChanges(raw: string | null): RecipeChange[] {
 const toRecipeDto = (r: RecipeRow): RecipeDto => ({
   id: r.id,
   name: r.name,
+  description: r.description ?? '',
   ingredients: r.ingredients,
   instructions: r.instructions,
-  description: r.description,
   family: r.family,
   parentId: r.parent_id,
   changes: parseChanges(r.changes),
-  changeNote: r.change_note ?? '',
+  hidden: r.hidden === 1,
   createdAt: r.created_at,
 });
 
@@ -234,6 +232,46 @@ async function handleOrders(
 
 // ---- Recipes ----------------------------------------------------------------
 
+/**
+ * Works out the parent and family to store. With a parent, the family is copied from it
+ * (so it's set once and never disagrees with the tree). Rejects unknown parents and cycles.
+ */
+async function resolveLineage(
+  env: Env,
+  parentId: number | null,
+  family: Family | null,
+  selfId: number | null
+): Promise<{ parentId: number | null; family: Family | null } | Response> {
+  if (parentId === null) return { parentId: null, family };
+
+  if (selfId !== null && parentId === selfId) {
+    return json({ error: 'A drink cannot be its own parent' }, { status: 400 });
+  }
+
+  const load = (id: number) =>
+    env.BAR_DB.prepare('SELECT id, family, parent_id FROM recipes WHERE id = ?')
+      .bind(id)
+      .first<{ id: number; family: Family | null; parent_id: number | null }>();
+
+  const parent = await load(parentId);
+  if (!parent) return json({ error: 'Parent drink not found' }, { status: 400 });
+
+  // Walk up from the parent: if we meet this drink, the move would create a loop.
+  if (selfId !== null) {
+    let cur: typeof parent | null = parent;
+    for (let i = 0; cur && i < 50; i++) {
+      if (cur.id === selfId) {
+        return json({ error: 'A drink cannot descend from one of its own variations' }, { status: 400 });
+      }
+      cur = cur.parent_id === null ? null : await load(cur.parent_id);
+    }
+  }
+
+  const inherited = parent.family ?? family;
+  if (!inherited) return json({ error: 'The parent drink has no family yet' }, { status: 400 });
+  return { parentId, family: inherited };
+}
+
 async function handleRecipes(
   request: Request,
   env: Env,
@@ -256,25 +294,27 @@ async function handleRecipes(
   if (request.method === 'POST' && !recipeIdSegment) {
     const parsed = CreateRecipeBody.safeParse(await readJson(request));
     if (!parsed.success) return invalid(parsed.error);
-    const { name, ingredients, instructions, description, changes, changeNote } = parsed.data;
-    const parentId = parsed.data.parentId ?? null;
-    let family = parsed.data.family ?? null;
+    const b = parsed.data;
 
-    // A derived drink inherits its parent's family unless one was given.
-    if (parentId !== null) {
-      const parent = await env.BAR_DB.prepare('SELECT family FROM recipes WHERE id = ?')
-        .bind(parentId)
-        .first<{ family: RecipeDto['family'] }>();
-      if (!parent) return json({ error: 'Parent drink not found' }, { status: 400 });
-      family = family ?? parent.family;
-    }
+    const lineage = await resolveLineage(env, b.parentId ?? null, b.family ?? null, null);
+    if (lineage instanceof Response) return lineage;
 
     const row = await env.BAR_DB.prepare(
-      `INSERT INTO recipes (name, ingredients, instructions, description, family, parent_id, changes, change_note)
+      `INSERT INTO recipes
+         (name, description, ingredients, instructions, family, parent_id, hidden, changes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING ${RECIPE_COLUMNS}`
     )
-      .bind(name, ingredients, instructions, description, family, parentId, JSON.stringify(changes), changeNote)
+      .bind(
+        b.name,
+        b.description,
+        b.ingredients,
+        b.instructions,
+        lineage.family,
+        lineage.parentId,
+        b.hidden ? 1 : 0,
+        JSON.stringify(b.changes)
+      )
       .first<RecipeRow>();
 
     if (!row) return json({ error: 'Could not create recipe' }, { status: 500 });
@@ -287,6 +327,7 @@ async function handleRecipes(
 
     const parsed = UpdateRecipeBody.safeParse(await readJson(request));
     if (!parsed.success) return invalid(parsed.error);
+    const b = parsed.data;
 
     const existing = await env.BAR_DB.prepare(
       `SELECT ${RECIPE_COLUMNS} FROM recipes WHERE id = ?`
@@ -297,42 +338,50 @@ async function handleRecipes(
     if (!existing) return json({ error: 'Not found' }, { status: 404 });
 
     // Omitted fields keep their current value.
-    const {
-      name = existing.name,
-      ingredients = existing.ingredients,
-      instructions = existing.instructions,
-      description = existing.description,
-      family = existing.family,
-      parentId = existing.parent_id,
-      changes = parseChanges(existing.changes),
-      changeNote = existing.change_note,
-    } = parsed.data;
-
-    if (parentId === recipeId) {
-      return json({ error: 'A drink cannot be its own parent' }, { status: 400 });
-    }
+    const lineage = await resolveLineage(
+      env,
+      b.parentId !== undefined ? b.parentId : existing.parent_id,
+      b.family !== undefined ? b.family : existing.family,
+      recipeId
+    );
+    if (lineage instanceof Response) return lineage;
 
     const row = await env.BAR_DB.prepare(
       `UPDATE recipes
-       SET name = ?, ingredients = ?, instructions = ?, description = ?, family = ?,
-           parent_id = ?, changes = ?, change_note = ?
+         SET name = ?, description = ?, ingredients = ?, instructions = ?,
+             family = ?, parent_id = ?, hidden = ?, changes = ?
        WHERE id = ?
        RETURNING ${RECIPE_COLUMNS}`
     )
       .bind(
-        name,
-        ingredients,
-        instructions,
-        description,
-        family,
-        parentId,
-        JSON.stringify(changes),
-        changeNote,
+        b.name ?? existing.name,
+        b.description ?? existing.description ?? '',
+        b.ingredients ?? existing.ingredients,
+        b.instructions ?? existing.instructions,
+        lineage.family,
+        lineage.parentId,
+        (b.hidden ?? existing.hidden === 1) ? 1 : 0,
+        JSON.stringify(b.changes ?? parseChanges(existing.changes)),
         recipeId
       )
       .first<RecipeRow>();
 
     if (!row) return json({ error: 'Not found' }, { status: 404 });
+
+    // If the family changed, every descendant moves with it (family is stored on each drink).
+    if (lineage.family !== existing.family) {
+      await env.BAR_DB.prepare(
+        `WITH RECURSIVE sub(id) AS (
+           SELECT id FROM recipes WHERE parent_id = ?
+           UNION ALL
+           SELECT r.id FROM recipes r JOIN sub ON r.parent_id = sub.id
+         )
+         UPDATE recipes SET family = ? WHERE id IN (SELECT id FROM sub)`
+      )
+        .bind(recipeId, lineage.family)
+        .run();
+    }
+
     return json(toRecipeDto(row));
   }
 
@@ -340,7 +389,11 @@ async function handleRecipes(
     const recipeId = parseId(recipeIdSegment);
     if (recipeId === null) return json({ error: 'Invalid id' }, { status: 400 });
 
-    await env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(recipeId).run();
+    // Variations of this drink keep their family but lose their parent link.
+    await env.BAR_DB.batch([
+      env.BAR_DB.prepare('UPDATE recipes SET parent_id = NULL WHERE parent_id = ?').bind(recipeId),
+      env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(recipeId),
+    ]);
     return new Response(null, { status: 204 });
   }
 
