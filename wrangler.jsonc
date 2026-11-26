@@ -25,7 +25,8 @@
 		{
 			"binding": "RECIPES_DB",
 			"database_name": "tools-clewis-recipes",
-			"database_id": "06ea5bd8-d1c9-4327-93c7-7afad6483c09"
+			"database_id": "06ea5bd8-d1c9-4327-93c7-7afad6483c09",
+			"migrations_dir": "migrations/recipes"
 		}
 	]
 }

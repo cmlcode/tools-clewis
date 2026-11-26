@@ -100,7 +100,7 @@ component). New frontend and API paths should be added to
 - Public paths are the exception, not the rule, and must be
   deliberately carved out as a separate, more specific Cloudflare
   Access application with a Bypass policy (e.g. `tools.clewis.tech/bar`
-  is public; `tools.clewis.tech/bar/orders` and `.../bar/recipes` are
+  is public; `tools.clewis.tech/bar/orders` and `.../bar/drinks` are
   not, and inherit the default login requirement).
 - App-level session state is a lightweight cookie (`tc_owner`, set by
   `src/worker/auth.ts`) rather than checking the Access header on every

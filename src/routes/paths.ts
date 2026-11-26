@@ -1,14 +1,20 @@
 // src/routes/paths.ts
 
 export const paths = {
-  launcher: "/",
-  bar: "/bar",
-  login: "/login",
+
+	// Router/Admin Pages
   account: "/account",
   admin: "/admin",
+  launcher: "/",
+  login: "/login",
+
+	// Bar Pages
 	addDrink: "/bar/drinks/new",
-	editDrink: "/bar/drinks/:id/edit",
+  bar: "/bar",
 	drink: "/bar/drinks/:id",
+	editDrink: "/bar/drinks/:id/edit",
+
+	recipes: "/recipes",
 } as const;
 
 export const api = {
@@ -16,7 +22,7 @@ export const api = {
     login: "/api/auth/login",
     logout: "/api/auth/logout",
     status: "/api/auth/status",
-		changePassword: "/api/auth/change-password",   // new`
+		changePassword: "/api/auth/change-password",
   },
 
   admin: {
@@ -28,4 +34,6 @@ export const api = {
     drinks: "/api/bar/drinks",
     status: "/api/bar/status",
   },
+
+	recipes: { list: "/api/recipes" }
 } as const;

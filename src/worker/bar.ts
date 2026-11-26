@@ -230,7 +230,7 @@ async function handleOrders(
   return json({ error: 'Not found' }, { status: 404 });
 }
 
-// ---- Recipes ----------------------------------------------------------------
+// ---- Drinks ----------------------------------------------------------------
 
 /**
  * Works out the parent and family to store. With a parent, the family is copied from it
@@ -249,7 +249,7 @@ async function resolveLineage(
   }
 
   const load = (id: number) =>
-    env.BAR_DB.prepare('SELECT id, family, parent_id FROM recipes WHERE id = ?')
+    env.BAR_DB.prepare('SELECT id, family, parent_id FROM drinks WHERE id = ?')
       .bind(id)
       .first<{ id: number; family: Family | null; parent_id: number | null }>();
 
@@ -281,7 +281,7 @@ async function handleDrinks(
   // PUBLIC: reading the drink list.
   if (request.method === 'GET' && !drinkIdSegment) {
     const { results } = await env.BAR_DB.prepare(
-      `SELECT ${DRINK_COLUMNS} FROM recipes ORDER BY name ASC`
+      `SELECT ${DRINK_COLUMNS} FROM drinks ORDER BY name ASC`
     ).all<DrinkRow>();
 
     return json(results.map(toDrinkDto));
@@ -300,7 +300,7 @@ async function handleDrinks(
     if (lineage instanceof Response) return lineage;
 
     const row = await env.BAR_DB.prepare(
-      `INSERT INTO recipes
+      `INSERT INTO drinks 
          (name, description, ingredients, instructions, family, parent_id, hidden, changes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING ${DRINK_COLUMNS}`
@@ -330,7 +330,7 @@ async function handleDrinks(
     const b = parsed.data;
 
     const existing = await env.BAR_DB.prepare(
-      `SELECT ${DRINK_COLUMNS} FROM recipes WHERE id = ?`
+      `SELECT ${DRINK_COLUMNS} FROM drinks WHERE id = ?`
     )
       .bind(drinkId)
       .first<DrinkRow>();
@@ -347,7 +347,7 @@ async function handleDrinks(
     if (lineage instanceof Response) return lineage;
 
     const row = await env.BAR_DB.prepare(
-      `UPDATE recipes
+      `UPDATE drinks 
          SET name = ?, description = ?, ingredients = ?, instructions = ?,
              family = ?, parent_id = ?, hidden = ?, changes = ?
        WHERE id = ?
@@ -372,11 +372,11 @@ async function handleDrinks(
     if (lineage.family !== existing.family) {
       await env.BAR_DB.prepare(
         `WITH RECURSIVE sub(id) AS (
-           SELECT id FROM recipes WHERE parent_id = ?
+           SELECT id FROM drinks WHERE parent_id = ?
            UNION ALL
-           SELECT r.id FROM recipes r JOIN sub ON r.parent_id = sub.id
+           SELECT r.id FROM drinks r JOIN sub ON r.parent_id = sub.id
          )
-         UPDATE recipes SET family = ? WHERE id IN (SELECT id FROM sub)`
+         UPDATE drinks SET family = ? WHERE id IN (SELECT id FROM sub)`
       )
         .bind(drinkId, lineage.family)
         .run();
@@ -391,8 +391,8 @@ async function handleDrinks(
 
     // Variations of this drink keep their family but lose their parent link.
     await env.BAR_DB.batch([
-      env.BAR_DB.prepare('UPDATE recipes SET parent_id = NULL WHERE parent_id = ?').bind(drinkId),
-      env.BAR_DB.prepare('DELETE FROM recipes WHERE id = ?').bind(drinkId),
+      env.BAR_DB.prepare('UPDATE drinks SET parent_id = NULL WHERE parent_id = ?').bind(drinkId),
+      env.BAR_DB.prepare('DELETE FROM drinks WHERE id = ?').bind(drinkId),
     ]);
     return new Response(null, { status: 204 });
   }

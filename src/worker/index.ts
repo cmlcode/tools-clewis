@@ -11,8 +11,10 @@ import {
   handleStatus,
   handleUpdateUser,
   type Role,
+  type User,
 } from './auth';
 import { handleBarApiRequest } from './bar';
+import { handleRecipesApiRequest } from '../features/recipes/server';
 import { json } from './http';
 
 // Reachable without a session
@@ -23,8 +25,19 @@ const ROLE_RULES: { prefix: string; methods?: string[]; roles: Role[] }[] = [
   { prefix: '/api/admin/', roles: ['admin'] },
 ];
 
+// Feature APIs. Some have public endpoints (the bar menu, recipes), so each feature decides
+// per request who may do what and denies by default itself. Adding a feature is one line here.
+type FeatureApi = {
+  prefix: string;
+  handle: (req: Request, env: Env, user: User | null, ctx: ExecutionContext) => Promise<Response>;
+};
+const FEATURES: FeatureApi[] = [
+  { prefix: '/api/bar', handle: handleBarApiRequest },
+  { prefix: '/api/recipes', handle: handleRecipesApiRequest },
+];
+
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const p = url.pathname;
 
@@ -43,10 +56,9 @@ export default {
       return p === api.auth.login ? handleLogin(req, env) : handleLogout(req, env);
     }
 
-    // 2. Bar API: has public guest endpoints, so bar.ts decides per request (deny by default there)
-    if (p.startsWith('/api/bar/')) {
-      return handleBarApiRequest(req, env, await getUser(req, env));
-    }
+    // 2. Feature APIs
+    const feature = FEATURES.find((f) => p === f.prefix || p.startsWith(f.prefix + '/'));
+    if (feature) return feature.handle(req, env, await getUser(req, env), ctx);
 
     // 3. Everything else under /api/ requires a valid session
     const user = await getUser(req, env);
