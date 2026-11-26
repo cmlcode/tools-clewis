@@ -34,7 +34,7 @@ export function RecipesPage() {
           </div>
         </div>
         <h1>Recipes</h1>
-        <p>Everything we cook, in one place.</p>
+        <p>All my recipes, in one place.</p>
       </header>
 
       <main className="rc-main">
@@ -47,7 +47,14 @@ export function RecipesPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or category"
+            placeholder="Search by name or category"* Add open/close feature
+
+* Add open/close feature
+
+* Add admin accounts
+
+* Fix order errors
+
             aria-label="Search by name or category"
           />
         </div>
