@@ -1,14 +1,32 @@
+/* src/features/bar/bar-page.css */
+/* Bar page layout: menu on the left, order form on the right.
+   Managers also get the orders queue across the top. */
+.wrap:has(.bar-content) {
+  max-width: 1200px;
+}
+
 .bar-content {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 48px;
+  align-items: start;
 }
 
-.bar-content:not(.bar-content--owner) {
-  justify-content: center;
+.bar-content--owner > .orders-widget {
+  grid-column: 1 / -1;
 }
 
-.bar-content .order-form {
-  margin: 40px 0;
+@media (max-width: 899px) {
+  .bar-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  /* On phones the order form goes above the menu (managers still see the queue first). */
+  .bar-content > .order-form {
+    order: -1;
+  }
+  .bar-content--owner > .orders-widget {
+    order: -2;
+  }
 }

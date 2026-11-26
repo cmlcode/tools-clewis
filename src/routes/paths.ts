@@ -6,6 +6,9 @@ export const paths = {
   login: "/login",
   account: "/account",
   admin: "/admin",
+	addRecipe: "/bar/recipes/new",
+	editRecipe: "/bar/recipes/:id/edit",
+	drink: "/bar/drinks/:id",
 } as const;
 
 export const api = {
